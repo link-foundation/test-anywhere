@@ -1,3 +1,6 @@
 {
-  "nodeModulesDir": "auto"
+  "nodeModulesDir": "auto",
+  "test": {
+    "exclude": ["examples/"]
+  }
 }
