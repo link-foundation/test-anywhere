@@ -31,14 +31,17 @@ test('basic assertion - throws', () => {
 test('getRuntime returns valid runtime', () => {
   const runtime = getRuntime();
   const validRuntimes = ['bun', 'deno', 'node'];
-  assert.ok(validRuntimes.includes(runtime), `Runtime ${runtime} should be one of: ${validRuntimes.join(', ')}`);
+  assert.ok(
+    validRuntimes.includes(runtime),
+    `Runtime ${runtime} should be one of: ${validRuntimes.join(', ')}`
+  );
 });
 
 test('assertion failures throw errors', () => {
   let errorThrown = false;
   try {
     assert.ok(false);
-  } catch (e) {
+  } catch (_e) {
     errorThrown = true;
   }
   assert.ok(errorThrown, 'assert.ok(false) should throw an error');

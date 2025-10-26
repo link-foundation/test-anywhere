@@ -8,8 +8,12 @@
 
 // Detect the current runtime
 const runtime = (() => {
-  if (typeof Bun !== 'undefined') return 'bun';
-  if (typeof Deno !== 'undefined') return 'deno';
+  if (typeof Bun !== 'undefined') {
+    return 'bun';
+  }
+  if (typeof Deno !== 'undefined') {
+    return 'deno';
+  }
   return 'node';
 })();
 
@@ -84,18 +88,18 @@ export const assert = {
     let thrown = false;
     try {
       fn();
-    } catch (e) {
+    } catch (_e) {
       thrown = true;
     }
     if (!thrown) {
       throw new Error(message);
     }
-  }
+  },
 };
 
 // Export everything as default as well for convenience
 export default {
   test,
   assert,
-  getRuntime
+  getRuntime,
 };
