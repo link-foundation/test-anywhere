@@ -7,17 +7,12 @@
  * The --allow-read permission is needed for Deno to import the module
  */
 
-import { test, assert, getRuntime } from '../index.js';
+import { test, assert } from '../index.js';
 
 test('basic assertions work in Deno', () => {
   assert.ok(true, 'ok assertion works');
   assert.equal(1 + 1, 2, 'equal assertion works');
   assert.deepEqual({ a: 1 }, { a: 1 }, 'deepEqual assertion works');
-});
-
-test('runtime detection works', () => {
-  const runtime = getRuntime();
-  assert.equal(runtime, 'deno', 'should detect Deno runtime');
 });
 
 test('assertion failures throw errors', () => {

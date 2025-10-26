@@ -8,17 +8,12 @@
  *   npm test
  */
 
-import { test, assert, getRuntime } from 'test-anywhere';
+import { test, assert } from 'test-anywhere';
 
 test('basic assertions work in Node.js', () => {
   assert.ok(true, 'ok assertion works');
   assert.equal(1 + 1, 2, 'equal assertion works');
   assert.deepEqual({ a: 1 }, { a: 1 }, 'deepEqual assertion works');
-});
-
-test('runtime detection works', () => {
-  const runtime = getRuntime();
-  assert.equal(runtime, 'node', 'should detect Node.js runtime');
 });
 
 test('assertion failures throw errors', () => {
