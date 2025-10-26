@@ -33,13 +33,13 @@ bun add test-anywhere
 No installation needed! Import directly from npm:
 
 ```javascript
-import { test, assert } from "npm:test-anywhere";
+import { test, assert } from 'npm:test-anywhere';
 ```
 
 Or from your local installation:
 
 ```javascript
-import { test, assert } from "./node_modules/test-anywhere/index.js";
+import { test, assert } from './node_modules/test-anywhere/index.js';
 ```
 
 ## Usage
@@ -73,7 +73,7 @@ npm test
 Create a test file (e.g., `example.test.js`):
 
 ```javascript
-import { test, assert } from "npm:test-anywhere";
+import { test, assert } from 'npm:test-anywhere';
 
 test('basic math works', () => {
   assert.equal(1 + 1, 2);
@@ -122,6 +122,7 @@ bun test
 Creates a test with the given name and test function.
 
 **Parameters:**
+
 - `name` (string): The name/description of the test
 - `fn` (function): The test function to execute
 
