@@ -150,6 +150,7 @@ jobs:
           version: npm run changeset:version
           commit: 'chore: version packages'
           title: 'chore: version packages'
+          createGithubReleases: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
