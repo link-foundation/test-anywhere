@@ -38,7 +38,9 @@ This grants the workflow job permission to write to the repository and create pu
 
 **Repository administrators must enable GitHub Actions to create pull requests:**
 
-#### Steps:
+> **⚠️ IMPORTANT:** If your repository belongs to an organization, you must configure these settings at **BOTH** the organization level AND the repository level. Organization settings can restrict repository-level permissions, so if you cannot enable these options in repository settings, check your organization settings first.
+
+#### Steps for Repository Settings:
 
 1. Navigate to your repository on GitHub
 2. Click **Settings** (top navigation)
@@ -48,26 +50,53 @@ This grants the workflow job permission to write to the repository and create pu
 6. Check the box: ☑️ **"Allow GitHub Actions to create and approve pull requests"**
 7. Click **Save**
 
+#### Steps for Organization Settings (if applicable):
+
+If the repository-level option **"Allow GitHub Actions to create and approve pull requests"** is disabled or grayed out, you need organization-level permissions:
+
+1. Navigate to your **Organization** page on GitHub (e.g., `github.com/orgs/link-foundation`)
+2. Click **Settings** (organization settings)
+3. Click **Actions** → **General** (left sidebar)
+4. Scroll down to **Workflow permissions** section
+5. Select: ☑️ **"Read and write permissions"**
+6. Check the box: ☑️ **"Allow GitHub Actions to create and approve pull requests"**
+7. Click **Save**
+8. **Then return to repository settings** and verify the option is now available
+
 #### Visual Guide:
 
+**Repository Settings:**
 ```
-Settings
-  └── Actions
-      └── General
-          └── Workflow permissions
-              ├── ○ Read repository contents and packages permissions
-              └── ● Read and write permissions  ← SELECT THIS
-                  └── ☑️ Allow GitHub Actions to create and approve pull requests  ← CHECK THIS
+Repository → Settings → Actions → General
+  └── Workflow permissions
+      ├── ○ Read repository contents and packages permissions
+      └── ● Read and write permissions  ← SELECT THIS
+          └── ☑️ Allow GitHub Actions to create and approve pull requests  ← CHECK THIS
 ```
 
-## Why Both Are Required
+**Organization Settings (if needed):**
+```
+Organization → Settings → Actions → General
+  └── Workflow permissions
+      ├── ○ Read repository contents and packages permissions
+      └── ● Read and write permissions  ← SELECT THIS
+          └── ☑️ Allow GitHub Actions to create and approve pull requests  ← CHECK THIS
+```
 
-| Configuration        | Purpose                                                                |
-| -------------------- | ---------------------------------------------------------------------- |
-| Workflow permissions | Grants the specific workflow job write access to the repository        |
-| Repository setting   | Allows the `github-actions[bot]` account to create PRs repository-wide |
+## Why Multiple Configurations Are Required
+
+| Configuration              | Purpose                                                                |
+| -------------------------- | ---------------------------------------------------------------------- |
+| Workflow permissions       | Grants the specific workflow job write access to the repository        |
+| Repository setting         | Allows the `github-actions[bot]` account to create PRs in this repo    |
+| Organization setting (if applicable) | Allows the `github-actions[bot]` account to create PRs across all org repos |
 
 For repositories created after **February 2, 2023**, GitHub Actions has read-only permissions by default for security reasons.
+
+**Settings Hierarchy:**
+- **Organization settings override repository settings**
+- If organization settings restrict PR creation, repository-level settings will be disabled/grayed out
+- Both levels must allow PR creation for the workflow to succeed
 
 ## Testing the Fix
 
@@ -106,8 +135,27 @@ Once the repository setting is enabled:
    - Both "Read and write" and "Allow PR creation" must be enabled
 
 3. **Check organization settings** (if applicable):
-   - Organization settings can override repository settings
-   - Contact your organization administrator if needed
+   - **IMPORTANT:** Organization settings can override repository settings
+   - Navigate to your organization's Settings → Actions → General
+   - Verify that "Allow GitHub Actions to create and approve pull requests" is enabled at the organization level
+   - Contact your organization administrator if you don't have access to these settings
+
+### Repository-Level Setting is Disabled/Grayed Out?
+
+This indicates that organization-level policies are restricting repository settings:
+
+1. **Check organization permissions:**
+   - You need organization owner or admin access to change organization-level Actions settings
+   - Navigate to `github.com/orgs/YOUR_ORG_NAME/settings/actions`
+
+2. **Enable at organization level first:**
+   - Enable "Read and write permissions"
+   - Enable "Allow GitHub Actions to create and approve pull requests"
+   - Save changes
+
+3. **Return to repository settings:**
+   - The repository-level option should now be available
+   - Enable it at the repository level as well
 
 ### Workflow Runs But PR Not Created?
 
