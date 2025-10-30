@@ -39,6 +39,7 @@ This grants the workflow job permission to write to the repository and create pu
 **Repository administrators must enable GitHub Actions to create pull requests:**
 
 #### Steps:
+
 1. Navigate to your repository on GitHub
 2. Click **Settings** (top navigation)
 3. Click **Actions** → **General** (left sidebar)
@@ -48,6 +49,7 @@ This grants the workflow job permission to write to the repository and create pu
 7. Click **Save**
 
 #### Visual Guide:
+
 ```
 Settings
   └── Actions
@@ -60,10 +62,10 @@ Settings
 
 ## Why Both Are Required
 
-| Configuration | Purpose |
-|---------------|---------|
-| Workflow permissions | Grants the specific workflow job write access to the repository |
-| Repository setting | Allows the `github-actions[bot]` account to create PRs repository-wide |
+| Configuration        | Purpose                                                                |
+| -------------------- | ---------------------------------------------------------------------- |
+| Workflow permissions | Grants the specific workflow job write access to the repository        |
+| Repository setting   | Allows the `github-actions[bot]` account to create PRs repository-wide |
 
 For repositories created after **February 2, 2023**, GitHub Actions has read-only permissions by default for security reasons.
 
@@ -80,6 +82,7 @@ Once the repository setting is enabled:
 5. Click **Run workflow**
 
 **Expected Result:**
+
 - Workflow creates a new branch named `changeset-manual-release-{run_id}`
 - A changeset file is added to `.changeset/` directory
 - A pull request is automatically created with release details
@@ -89,6 +92,7 @@ Once the repository setting is enabled:
 ### Still Getting 403 Errors?
 
 1. **Verify workflow permissions** in `.github/workflows/manual-release.yml`:
+
    ```yaml
    jobs:
      create-changeset:
@@ -120,6 +124,7 @@ Once the repository setting is enabled:
 ## Support
 
 If you continue to experience issues after following this guide, please:
+
 1. Check the [issue tracker](../../issues)
 2. Review the [workflow logs](../../actions)
 3. Create a new issue with detailed error messages
