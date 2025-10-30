@@ -66,6 +66,7 @@ If the repository-level option **"Allow GitHub Actions to create and approve pul
 #### Visual Guide:
 
 **Repository Settings:**
+
 ```
 Repository → Settings → Actions → General
   └── Workflow permissions
@@ -75,6 +76,7 @@ Repository → Settings → Actions → General
 ```
 
 **Organization Settings (if needed):**
+
 ```
 Organization → Settings → Actions → General
   └── Workflow permissions
@@ -85,15 +87,16 @@ Organization → Settings → Actions → General
 
 ## Why Multiple Configurations Are Required
 
-| Configuration              | Purpose                                                                |
-| -------------------------- | ---------------------------------------------------------------------- |
-| Workflow permissions       | Grants the specific workflow job write access to the repository        |
-| Repository setting         | Allows the `github-actions[bot]` account to create PRs in this repo    |
+| Configuration                        | Purpose                                                                     |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| Workflow permissions                 | Grants the specific workflow job write access to the repository             |
+| Repository setting                   | Allows the `github-actions[bot]` account to create PRs in this repo         |
 | Organization setting (if applicable) | Allows the `github-actions[bot]` account to create PRs across all org repos |
 
 For repositories created after **February 2, 2023**, GitHub Actions has read-only permissions by default for security reasons.
 
 **Settings Hierarchy:**
+
 - **Organization settings override repository settings**
 - If organization settings restrict PR creation, repository-level settings will be disabled/grayed out
 - Both levels must allow PR creation for the workflow to succeed
