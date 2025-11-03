@@ -46,7 +46,7 @@ jobs:
           echo "Draft: $PR_DRAFT"
 
           # Check if PR is from github-actions bot and has the expected title
-          if [[ "$PR_AUTHOR" != "github-actions"* ]]; then
+          if [[ "$PR_AUTHOR" != "github-actions"* && "$PR_AUTHOR" != "app/github-actions" ]]; then
             echo "PR author is not github-actions bot, skipping auto-merge"
             exit 0
           fi
@@ -158,7 +158,7 @@ jobs:
             echo "Found PR #$PR_NUMBER: $PR_TITLE (author: $PR_AUTHOR, draft: $PR_DRAFT)"
 
             # Skip if not from github-actions bot
-            if [[ "$PR_AUTHOR" != "github-actions"* ]]; then
+            if [[ "$PR_AUTHOR" != "github-actions"* && "$PR_AUTHOR" != "app/github-actions" ]]; then
               echo "  Skipping: not from github-actions bot"
               continue
             fi
