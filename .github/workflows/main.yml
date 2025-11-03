@@ -198,13 +198,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Add npm links to GitHub releases
+      - name: Format GitHub release notes
         if: steps.changesets.outputs.published == 'true'
         run: |
           echo "Published packages:"
           echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[] | "- \(.name)@\(.version)"'
 
-          # Add npm package links to the GitHub releases
+          # Format release notes for each published package
           for package in $(echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[] | @base64'); do
             _jq() {
               echo "${package}" | base64 --decode | jq -r "${1}"
@@ -217,23 +217,8 @@ jobs:
             RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/v${PKG_VERSION} --jq '.id' 2>/dev/null || echo "")
 
             if [ -n "$RELEASE_ID" ]; then
-              # Get current release body
-              CURRENT_BODY=$(gh api repos/${{ github.repository }}/releases/${RELEASE_ID} --jq '.body')
-
-              # Add npm link if not already present
-              if ! echo "$CURRENT_BODY" | grep -q "npmjs.com/package/${PKG_NAME}"; then
-                NPM_LINK="\n\n---\n\n📦 **npm Package**: https://www.npmjs.com/package/${PKG_NAME}/v/${PKG_VERSION}"
-                NEW_BODY="${CURRENT_BODY}${NPM_LINK}"
-
-                # Update the release
-                gh api repos/${{ github.repository }}/releases/${RELEASE_ID} \
-                  -X PATCH \
-                  -f body="$NEW_BODY"
-
-                echo "✅ Added npm link to release v${PKG_VERSION}"
-              else
-                echo "ℹ️ npm link already exists in release v${PKG_VERSION}"
-              fi
+              echo "Formatting release notes for v${PKG_VERSION}..."
+              node scripts/format-release-notes.mjs "${RELEASE_ID}" "v${PKG_VERSION}" "${{ github.repository }}"
             else
               echo "⚠️ Could not find release for v${PKG_VERSION}"
             fi
