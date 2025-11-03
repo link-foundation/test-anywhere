@@ -31,15 +31,16 @@ try {
 
   const currentBody = releaseData.body || '';
 
-  // Skip if already formatted (has shields.io badge)
-  if (currentBody.includes('shields.io')) {
+  // Skip if already formatted (has shields.io badge image)
+  if (currentBody.includes('img.shields.io')) {
     console.log('ℹ️ Release notes already formatted');
     process.exit(0);
   }
 
   // Extract the patch changes section
+  // This regex captures the commit hash and everything after the colon until we hit double newline or end
   const patchChangesMatch = currentBody.match(
-    /### Patch Changes\s*\n\s*-\s+([a-f0-9]+):\s+(.+)/
+    /### Patch Changes\s*\n\s*-\s+([a-f0-9]+):\s+(.+?)$/s
   );
 
   if (!patchChangesMatch) {
@@ -47,7 +48,18 @@ try {
     process.exit(0);
   }
 
-  const [, commitHash, description] = patchChangesMatch;
+  const [, commitHash, rawDescription] = patchChangesMatch;
+
+  // Clean up the description:
+  // 1. Remove literal \n sequences (escaped newlines from GitHub API)
+  // 2. Remove any trailing npm package links or markdown that might be there
+  // 3. Normalize whitespace
+  const cleanDescription = rawDescription
+    .replace(/\\n/g, ' ') // Remove literal \n characters
+    .replace(/📦.*$/s, '') // Remove any existing npm package info
+    .replace(/---.*$/s, '') // Remove any existing separators and everything after
+    .trim()
+    .replace(/\s+/g, ' '); // Normalize all whitespace to single spaces
 
   // Find the PR that contains this commit
   let prNumber = null;
@@ -75,7 +87,7 @@ try {
   const versionWithoutV = version.replace(/^v/, '');
   const npmBadge = `[![npm version](https://img.shields.io/badge/npm-${versionWithoutV}-blue.svg)](https://www.npmjs.com/package/${packageName}/v/${versionWithoutV})`;
 
-  let formattedBody = `## What's Changed\n\n${description}`;
+  let formattedBody = `## What's Changed\n\n${cleanDescription}`;
 
   // Add PR link if available
   if (prNumber) {
@@ -84,10 +96,14 @@ try {
 
   formattedBody += `\n\n---\n\n${npmBadge}\n\n📦 **View on npm:** https://www.npmjs.com/package/${packageName}/v/${versionWithoutV}`;
 
-  // Update the release
+  // Update the release using JSON input to properly handle special characters
+  const updatePayload = JSON.stringify({ body: formattedBody });
   execSync(
-    `gh api repos/${repository}/releases/${releaseId} -X PATCH -f body='${formattedBody.replace(/'/g, "'\\''")}'`,
-    { encoding: 'utf8' }
+    `gh api repos/${repository}/releases/${releaseId} -X PATCH --input -`,
+    {
+      encoding: 'utf8',
+      input: updatePayload,
+    }
   );
 
   console.log(`✅ Formatted release notes for v${versionWithoutV}`);
