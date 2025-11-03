@@ -1,0 +1,213 @@
+name: Auto-merge Version PRs
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  check_suite:
+    types: [completed]
+  workflow_run:
+    workflows: ['CI/CD']
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Auto-merge Changesets Version PR
+    runs-on: ubuntu-latest
+    # Only run on PRs from changeset-release/* branches
+    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'changeset-release/')
+    steps:
+      - name: Check PR details
+        id: pr_check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get PR number from the event
+          if [ "${{ github.event.pull_request.number }}" != "" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          else
+            echo "No PR number found in event"
+            exit 0
+          fi
+
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+          # Get PR details
+          PR_JSON=$(gh api repos/${{ github.repository }}/pulls/$PR_NUMBER)
+          PR_TITLE=$(echo "$PR_JSON" | jq -r '.title')
+          PR_AUTHOR=$(echo "$PR_JSON" | jq -r '.user.login')
+          PR_DRAFT=$(echo "$PR_JSON" | jq -r '.draft')
+
+          echo "PR #$PR_NUMBER: $PR_TITLE"
+          echo "Author: $PR_AUTHOR"
+          echo "Draft: $PR_DRAFT"
+
+          # Check if PR is from github-actions bot and has the expected title
+          if [[ "$PR_AUTHOR" != "github-actions"* ]]; then
+            echo "PR author is not github-actions bot, skipping auto-merge"
+            exit 0
+          fi
+
+          if [[ "$PR_TITLE" != "chore: version packages" ]]; then
+            echo "PR title is not 'chore: version packages', skipping auto-merge"
+            exit 0
+          fi
+
+          if [[ "$PR_DRAFT" == "true" ]]; then
+            echo "PR is in draft state, skipping auto-merge"
+            exit 0
+          fi
+
+          echo "should_merge=true" >> $GITHUB_OUTPUT
+
+      - name: Wait for CI checks
+        if: steps.pr_check.outputs.should_merge == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.pr_check.outputs.pr_number }}"
+          MAX_WAIT=600  # 10 minutes max wait
+          INTERVAL=30   # Check every 30 seconds
+          ELAPSED=0
+
+          echo "Waiting for CI checks to complete for PR #$PR_NUMBER..."
+
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            # Get the commit SHA for the PR
+            COMMIT_SHA=$(gh api repos/${{ github.repository }}/pulls/$PR_NUMBER --jq '.head.sha')
+
+            # Get check runs for this commit
+            CHECK_RUNS=$(gh api repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs --jq '.check_runs')
+
+            # Count total, completed, and successful checks
+            TOTAL_CHECKS=$(echo "$CHECK_RUNS" | jq 'length')
+            COMPLETED_CHECKS=$(echo "$CHECK_RUNS" | jq '[.[] | select(.status == "completed")] | length')
+            SUCCESSFUL_CHECKS=$(echo "$CHECK_RUNS" | jq '[.[] | select(.status == "completed" and .conclusion == "success")] | length')
+            FAILED_CHECKS=$(echo "$CHECK_RUNS" | jq '[.[] | select(.status == "completed" and .conclusion != "success" and .conclusion != "skipped")] | length')
+
+            echo "Check status: $COMPLETED_CHECKS/$TOTAL_CHECKS completed ($SUCCESSFUL_CHECKS successful, $FAILED_CHECKS failed)"
+
+            # If any checks failed, exit
+            if [ "$FAILED_CHECKS" -gt 0 ]; then
+              echo "::error::Some CI checks failed. Cannot auto-merge."
+              exit 1
+            fi
+
+            # If all checks are completed and successful (or skipped), proceed
+            if [ "$TOTAL_CHECKS" -gt 0 ] && [ "$COMPLETED_CHECKS" -eq "$TOTAL_CHECKS" ]; then
+              echo "All CI checks passed!"
+              exit 0
+            fi
+
+            # If no checks yet, wait a bit more
+            if [ "$TOTAL_CHECKS" -eq 0 ]; then
+              echo "No check runs found yet, waiting..."
+            fi
+
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+
+          echo "::error::Timeout waiting for CI checks to complete"
+          exit 1
+
+      - name: Enable auto-merge
+        if: steps.pr_check.outputs.should_merge == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.pr_check.outputs.pr_number }}"
+
+          echo "Enabling auto-merge for PR #$PR_NUMBER..."
+
+          # Enable auto-merge with squash merge strategy
+          gh pr merge $PR_NUMBER --auto --squash --repo ${{ github.repository }}
+
+          echo "✅ Auto-merge enabled for PR #$PR_NUMBER"
+          echo "The PR will be automatically merged when all checks pass."
+
+  auto-merge-on-checks:
+    name: Auto-merge on Check Completion
+    runs-on: ubuntu-latest
+    # Run when CI workflow completes
+    if: github.event_name == 'workflow_run' || github.event_name == 'check_suite'
+    steps:
+      - name: Find version PRs ready to merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Checking for version PRs that are ready to auto-merge..."
+
+          # Find all open PRs from changeset-release/* branches
+          PRS=$(gh pr list --repo ${{ github.repository }} --state open --json number,headRefName,author,title,isDraft --jq '.[] | select(.headRefName | startswith("changeset-release/"))')
+
+          if [ -z "$PRS" ]; then
+            echo "No version PRs found"
+            exit 0
+          fi
+
+          echo "$PRS" | jq -c '.' | while read -r PR; do
+            PR_NUMBER=$(echo "$PR" | jq -r '.number')
+            PR_TITLE=$(echo "$PR" | jq -r '.title')
+            PR_AUTHOR=$(echo "$PR" | jq -r '.author.login')
+            PR_DRAFT=$(echo "$PR" | jq -r '.isDraft')
+
+            echo "Found PR #$PR_NUMBER: $PR_TITLE (author: $PR_AUTHOR, draft: $PR_DRAFT)"
+
+            # Skip if not from github-actions bot
+            if [[ "$PR_AUTHOR" != "github-actions"* ]]; then
+              echo "  Skipping: not from github-actions bot"
+              continue
+            fi
+
+            # Skip if not the expected title
+            if [[ "$PR_TITLE" != "chore: version packages" ]]; then
+              echo "  Skipping: unexpected title"
+              continue
+            fi
+
+            # Skip if draft
+            if [[ "$PR_DRAFT" == "true" ]]; then
+              echo "  Skipping: PR is draft"
+              continue
+            fi
+
+            # Check if auto-merge is already enabled
+            PR_AUTO_MERGE=$(gh api repos/${{ github.repository }}/pulls/$PR_NUMBER --jq '.auto_merge')
+            if [ "$PR_AUTO_MERGE" != "null" ]; then
+              echo "  Auto-merge already enabled for PR #$PR_NUMBER"
+              continue
+            fi
+
+            # Get commit SHA
+            COMMIT_SHA=$(gh api repos/${{ github.repository }}/pulls/$PR_NUMBER --jq '.head.sha')
+
+            # Check all CI checks
+            CHECK_RUNS=$(gh api repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs --jq '.check_runs')
+            TOTAL_CHECKS=$(echo "$CHECK_RUNS" | jq 'length')
+            COMPLETED_CHECKS=$(echo "$CHECK_RUNS" | jq '[.[] | select(.status == "completed")] | length')
+            SUCCESSFUL_CHECKS=$(echo "$CHECK_RUNS" | jq '[.[] | select(.status == "completed" and .conclusion == "success")] | length')
+            FAILED_CHECKS=$(echo "$CHECK_RUNS" | jq '[.[] | select(.status == "completed" and .conclusion != "success" and .conclusion != "skipped")] | length')
+            SKIPPED_CHECKS=$(echo "$CHECK_RUNS" | jq '[.[] | select(.conclusion == "skipped")] | length')
+
+            echo "  CI Status: $COMPLETED_CHECKS/$TOTAL_CHECKS completed ($SUCCESSFUL_CHECKS successful, $FAILED_CHECKS failed, $SKIPPED_CHECKS skipped)"
+
+            # Skip if any checks failed
+            if [ "$FAILED_CHECKS" -gt 0 ]; then
+              echo "  Skipping: some checks failed"
+              continue
+            fi
+
+            # Skip if not all checks are complete
+            if [ "$TOTAL_CHECKS" -gt 0 ] && [ "$COMPLETED_CHECKS" -ne "$TOTAL_CHECKS" ]; then
+              echo "  Skipping: checks still in progress"
+              continue
+            fi
+
+            # If we made it here, enable auto-merge
+            echo "  ✅ All conditions met, enabling auto-merge for PR #$PR_NUMBER"
+            gh pr merge $PR_NUMBER --auto --squash --repo ${{ github.repository }} || echo "  Failed to enable auto-merge (may already be merging)"
+          done
