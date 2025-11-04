@@ -177,7 +177,7 @@ jobs:
 
             # Check if auto-merge is already enabled
             PR_AUTO_MERGE=$(gh api repos/${{ github.repository }}/pulls/$PR_NUMBER --jq '.auto_merge')
-            if [ "$PR_AUTO_MERGE" != "null" ]; then
+            if [ -n "$PR_AUTO_MERGE" ] && [ "$PR_AUTO_MERGE" != "null" ]; then
               echo "  Auto-merge already enabled for PR #$PR_NUMBER"
               continue
             fi
