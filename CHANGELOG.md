@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.2.1
+
+### Patch Changes
+
+- 99d78ba: Test patch release
+
 ## 0.2.0
 
 ### Minor Changes
