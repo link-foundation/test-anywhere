@@ -6,55 +6,87 @@ The auto-merge workflow for version bump PRs was not working despite all permiss
 
 ## Root Cause Analysis
 
-### Investigation Steps
+### Investigation Timeline
 
 1. **First Failure (PR #39, Run ID: 19024721285)**
    - Workflow run: https://github.com/link-foundation/test-anywhere/actions/runs/19024721285
    - Time: 2025-11-03 05:19:43 UTC
    - Issue: The workflow skipped PR #39 with message "Skipping: not from github-actions bot"
-   - Root cause: At commit `d566d5475319ed60cb796bada31f7967ba602058`, the workflow only checked for `"github-actions"*` pattern but the actual bot author was `app/github-actions`
+   - Root cause: The workflow only checked for `"github-actions"*` pattern but the actual bot author was `app/github-actions`
+   - **Fixed in PR #41** (merged 2025-11-03 05:55:09Z)
 
-   **This was already fixed in PR #41** which added the check for `app/github-actions` alongside the pattern check.
+2. **Second Failure (PR #46)**
+   - Issue: Repository setting `allow_auto_merge` was set to `false`
+   - Root cause: Even with correct bot detection, the repository didn't allow auto-merge feature to be used
+   - **Fixed in PR #47** (merged 2025-11-04 02:24:17Z)
 
-2. **Second Failure (PR #46, Run ID: 19055248896)**
-   - Workflow run: https://github.com/link-foundation/test-anywhere/actions/runs/19055248896
-   - Time: 2025-11-04 01:54:59 UTC
-   - Issue: Workflow detected PR #46 and reported "Auto-merge already enabled" but the PR was never actually auto-merged
-   - Root cause: **Repository setting `allow_auto_merge` was set to `false`**
+3. **Third Failure (PR #48 - Current)**
+   - Workflow run: https://github.com/link-foundation/test-anywhere/actions/runs/19056677844
+   - Time: 2025-11-04 03:19:39 UTC
+   - Issue: Workflow logged "Auto-merge already enabled for PR #48" but auto-merge was NOT actually enabled
+   - Root cause: **Bug in null value checking**
 
-### The Real Problem
+### The Real Problem (This PR's Fix)
 
-The repository had auto-merge disabled at the repository level:
+The workflow had a bug in how it checked if auto-merge was already enabled:
 
-```json
-{
-  "allow_auto_merge": false
-}
+```yaml
+PR_AUTO_MERGE=$(gh api repos/${{ github.repository }}/pulls/$PR_NUMBER --jq '.auto_merge')
+if [ "$PR_AUTO_MERGE" != "null" ]; then
+  echo "  Auto-merge already enabled for PR #$PR_NUMBER"
+  continue
+fi
 ```
 
-This meant that even when the workflow tried to enable auto-merge with:
+**The Bug:**
 
+When `auto_merge` is `null` in the GitHub API response, `gh api --jq '.auto_merge'` returns an **empty string** `""`, not the literal string `"null"`.
+
+The comparison `[ "" != "null" ]` evaluates to **TRUE**, causing the workflow to incorrectly think auto-merge is already enabled and skip enabling it.
+
+**Proof:**
 ```bash
-gh pr merge $PR_NUMBER --auto --squash --repo link-foundation/test-anywhere
-```
+$ gh api repos/link-foundation/test-anywhere/pulls/48 --jq '.auto_merge'
+# Returns: (empty string)
 
-The command would fail silently (suppressed by `|| echo "Failed to enable auto-merge"`) because the repository doesn't allow auto-merge feature to be used.
+$ PR_AUTO_MERGE=$(gh api repos/link-foundation/test-anywhere/pulls/48 --jq '.auto_merge')
+$ echo "Value: [$PR_AUTO_MERGE]"
+Value: []
+
+$ if [ "$PR_AUTO_MERGE" != "null" ]; then echo "SKIP"; else echo "ENABLE"; fi
+SKIP  # ❌ BUG! Should enable auto-merge!
+```
 
 ## Solution
 
 ### Fix Applied
 
-Enabled auto-merge at the repository level using the GitHub API:
+Changed the null check in `.github/workflows/auto-merge-version-pr.yml` to properly handle empty strings:
 
-```bash
-gh api repos/link-foundation/test-anywhere -X PATCH -f allow_auto_merge=true
+```yaml
+# Before (buggy)
+if [ "$PR_AUTO_MERGE" != "null" ]; then
+
+# After (fixed)
+if [ -n "$PR_AUTO_MERGE" ] && [ "$PR_AUTO_MERGE" != "null" ]; then
 ```
+
+This ensures:
+- Empty strings (from null API values) → proceed to enable auto-merge ✅
+- Actual auto-merge objects → skip (already enabled) ✅
 
 ### Verification
 
+Created test scripts in `experiments/` directory to validate the fix:
+
 ```bash
-$ gh api repos/link-foundation/test-anywhere --jq '.allow_auto_merge'
-true
+$ ./experiments/verify-fix.sh
+
+OLD LOGIC (BUGGY):
+  ❌ Would skip enabling auto-merge (BUG!)
+
+NEW LOGIC (FIXED):
+  ✅ Would enable auto-merge (CORRECT!)
 ```
 
 ## How the Workflow Works (Post-Fix)
@@ -91,16 +123,47 @@ The fix can be tested by:
 2. Triggering the release workflow to create a version bump PR
 3. Observing that the PR gets automatically merged once all checks pass
 
+## Additional Context: Why No CI Checks Run
+
+Version PRs created by the changesets bot have zero CI checks due to GitHub's security policy:
+
+**GitHub Actions Security Feature:**
+- PRs created using `GITHUB_TOKEN` do NOT trigger `pull_request` workflows
+- This prevents recursive workflow runs
+- It's by design and expected behavior
+
+**Evidence:**
+```bash
+$ gh run list --repo link-foundation/test-anywhere --workflow "CI/CD" --branch changeset-release/main
+[]  # No CI/CD runs ever for version PRs
+
+$ gh api repos/link-foundation/test-anywhere/commits/1caba63d.../check-runs
+{"check_runs":[],"total_count":0}
+```
+
+The auto-merge workflow correctly handles PRs with zero checks (line 205 in the workflow allows this).
+
 ## Files Modified
 
-None - the fix was applied directly to repository settings.
+- `.github/workflows/auto-merge-version-pr.yml` - Fixed null check bug at line 180
+- `experiments/test-auto-merge-check.sh` - Test script for debugging
+- `experiments/test-jq-null.sh` - Demonstrates jq null behavior
+- `experiments/verify-fix.sh` - Validates fix correctness
 
-## Related PRs
+## Related PRs and Issues
 
-- PR #41: Fixed the bot author detection pattern (merged on 2025-11-03)
-- PR #46: First version bump PR after PR #41, manually merged because `allow_auto_merge` was still disabled
-- Future PRs: Should auto-merge successfully now that repository setting is fixed
+- Issue #40: https://github.com/link-foundation/test-anywhere/issues/40
+- PR #41: Fixed bot author detection (merged 2025-11-03 05:55:09Z)
+- PR #47: Enabled repository auto-merge setting (merged 2025-11-04 02:24:17Z)
+- PR #48: Version PR waiting for this fix to auto-merge
+- PR #49: This PR - fixes the null check bug
 
 ## Conclusion
 
-The issue was caused by a repository-level setting that disabled the auto-merge feature. The workflow code itself was correct (after PR #41's fix for bot detection). Enabling `allow_auto_merge` on the repository resolves the issue completely.
+The auto-merge feature required **three separate fixes**:
+
+1. ✅ Bot author recognition (PR #41)
+2. ✅ Repository setting enabled (PR #47)
+3. ✅ Null check bug fixed (PR #49 - this PR)
+
+With all three fixes in place, version PRs will now auto-merge successfully.
