@@ -1,38 +1,37 @@
 #!/bin/bash
-set -e
 
-# Test the auto-merge check logic
+# Test what gh api returns when auto_merge is null
+echo "Testing auto_merge check logic..."
+echo ""
+
+# Get the actual value from the API
 PR_AUTO_MERGE=$(gh api repos/link-foundation/test-anywhere/pulls/48 --jq '.auto_merge')
 
-echo "PR_AUTO_MERGE value: '$PR_AUTO_MERGE'"
-echo "Type: $(echo "$PR_AUTO_MERGE" | wc -c) characters"
+echo "Raw value from gh api --jq '.auto_merge': [$PR_AUTO_MERGE]"
+echo "Length of value: ${#PR_AUTO_MERGE}"
+echo ""
 
+# Test the current workflow condition
+echo "Current workflow condition: [ \"\$PR_AUTO_MERGE\" != \"null\" ]"
 if [ "$PR_AUTO_MERGE" != "null" ]; then
-  echo "  Auto-merge already enabled for PR #48"
+  echo "  Result: TRUE (would skip enabling auto-merge) ❌ BUG!"
 else
-  echo "  Auto-merge NOT enabled, should proceed"
+  echo "  Result: FALSE (would enable auto-merge) ✅"
 fi
+echo ""
 
-# Check commit SHA and check runs
-COMMIT_SHA=$(gh api repos/link-foundation/test-anywhere/pulls/48 --jq '.head.sha')
-echo "Commit SHA: $COMMIT_SHA"
-
-CHECK_RUNS=$(gh api repos/link-foundation/test-anywhere/commits/$COMMIT_SHA/check-runs --jq '.check_runs')
-TOTAL_CHECKS=$(echo "$CHECK_RUNS" | jq 'length')
-COMPLETED_CHECKS=$(echo "$CHECK_RUNS" | jq '[.[] | select(.status == "completed")] | length')
-SUCCESSFUL_CHECKS=$(echo "$CHECK_RUNS" | jq '[.[] | select(.status == "completed" and .conclusion == "success")] | length')
-FAILED_CHECKS=$(echo "$CHECK_RUNS" | jq '[.[] | select(.status == "completed" and .conclusion != "success" and .conclusion != "skipped")] | length')
-
-echo "Total checks: $TOTAL_CHECKS"
-echo "Completed: $COMPLETED_CHECKS"
-echo "Successful: $SUCCESSFUL_CHECKS"
-echo "Failed: $FAILED_CHECKS"
-
-# Test the skip conditions
-if [ "$FAILED_CHECKS" -gt 0 ]; then
-  echo "  Would skip: some checks failed"
-elif [ "$TOTAL_CHECKS" -gt 0 ] && [ "$COMPLETED_CHECKS" -ne "$TOTAL_CHECKS" ]; then
-  echo "  Would skip: checks still in progress"
+# Show what the value actually is
+echo "Checking if value is empty string:"
+if [ -z "$PR_AUTO_MERGE" ]; then
+  echo "  Value is empty string ✅"
 else
-  echo "  ✅ Would enable auto-merge!"
+  echo "  Value is NOT empty string"
+fi
+echo ""
+
+echo "Checking if value equals literal 'null':"
+if [ "$PR_AUTO_MERGE" = "null" ]; then
+  echo "  Value equals 'null' ✅"
+else
+  echo "  Value does NOT equal 'null'"
 fi

@@ -1,46 +1,36 @@
 #!/bin/bash
-set -e
 
-echo "=== Verifying the fix ==="
+echo "Verifying the fix for auto-merge check..."
 echo ""
 
-# Get auto_merge value the same way the workflow does
+# Get the actual value from gh api
 PR_AUTO_MERGE=$(gh api repos/link-foundation/test-anywhere/pulls/48 --jq '.auto_merge')
 
-echo "PR_AUTO_MERGE value: [$PR_AUTO_MERGE]"
+echo "Current state of PR #48:"
+echo "  Raw API value: [$PR_AUTO_MERGE]"
+echo "  Length: ${#PR_AUTO_MERGE}"
+echo "  Is empty: $([ -z "$PR_AUTO_MERGE" ] && echo YES || echo NO)"
 echo ""
 
 echo "OLD LOGIC (BUGGY):"
+echo "  if [ \"\$PR_AUTO_MERGE\" != \"null\" ]; then"
 if [ "$PR_AUTO_MERGE" != "null" ]; then
-  echo "  ❌ Would skip enabling auto-merge (BUG!)"
+  echo "    ❌ Would skip enabling auto-merge (BUG!)"
 else
-  echo "  ✅ Would enable auto-merge"
+  echo "    ✅ Would enable auto-merge"
 fi
 echo ""
 
 echo "NEW LOGIC (FIXED):"
+echo "  if [ -n \"\$PR_AUTO_MERGE\" ] && [ \"\$PR_AUTO_MERGE\" != \"null\" ]; then"
 if [ -n "$PR_AUTO_MERGE" ] && [ "$PR_AUTO_MERGE" != "null" ]; then
-  echo "  ❌ Would skip enabling auto-merge"
+  echo "    ❌ Would skip enabling auto-merge"
 else
-  echo "  ✅ Would enable auto-merge (CORRECT!)"
+  echo "    ✅ Would enable auto-merge (CORRECT!)"
 fi
 echo ""
 
-# Test with different values
-echo "=== Testing with different values ==="
-echo ""
-
-test_value() {
-  local value="$1"
-  echo "Testing value: [$value]"
-  
-  if [ -n "$value" ] && [ "$value" != "null" ]; then
-    echo "  NEW LOGIC: Would skip (auto-merge already enabled)"
-  else
-    echo "  NEW LOGIC: Would enable auto-merge"
-  fi
-}
-
-test_value ""  # Empty (null from API)
-test_value "null"  # String "null"
-test_value '{"enabled_by":{"login":"konard"},"merge_method":"squash"}'  # Real auto-merge object
+echo "EXPLANATION:"
+echo "  - When auto_merge is null in GitHub API, gh api --jq returns empty string"
+echo "  - Old logic: [ \"\" != \"null\" ] = TRUE (incorrectly skips)"
+echo "  - New logic: [ -n \"\" ] && [ \"\" != \"null\" ] = FALSE (correctly enables)"
