@@ -45,6 +45,7 @@ When `auto_merge` is `null` in the GitHub API response, `gh api --jq '.auto_merg
 The comparison `[ "" != "null" ]` evaluates to **TRUE**, causing the workflow to incorrectly think auto-merge is already enabled and skip enabling it.
 
 **Proof:**
+
 ```bash
 $ gh api repos/link-foundation/test-anywhere/pulls/48 --jq '.auto_merge'
 # Returns: (empty string)
@@ -72,6 +73,7 @@ if [ -n "$PR_AUTO_MERGE" ] && [ "$PR_AUTO_MERGE" != "null" ]; then
 ```
 
 This ensures:
+
 - Empty strings (from null API values) → proceed to enable auto-merge ✅
 - Actual auto-merge objects → skip (already enabled) ✅
 
@@ -128,11 +130,13 @@ The fix can be tested by:
 Version PRs created by the changesets bot have zero CI checks due to GitHub's security policy:
 
 **GitHub Actions Security Feature:**
+
 - PRs created using `GITHUB_TOKEN` do NOT trigger `pull_request` workflows
 - This prevents recursive workflow runs
 - It's by design and expected behavior
 
 **Evidence:**
+
 ```bash
 $ gh run list --repo link-foundation/test-anywhere --workflow "CI/CD" --branch changeset-release/main
 []  # No CI/CD runs ever for version PRs
