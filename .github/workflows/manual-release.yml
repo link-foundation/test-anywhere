@@ -52,10 +52,10 @@ jobs:
             DESCRIPTION="Manual ${BUMP_TYPE} release"
           fi
 
-          # Create the changeset file
+          # Create the changeset file with single quotes to match Prettier config
           cat > "$CHANGESET_FILE" <<EOF
           ---
-          "test-anywhere": ${BUMP_TYPE}
+          'test-anywhere': ${BUMP_TYPE}
           ---
 
           ${DESCRIPTION}
@@ -63,6 +63,13 @@ jobs:
 
           echo "Created changeset: $CHANGESET_FILE"
           cat "$CHANGESET_FILE"
+
+      - name: Format changeset with Prettier
+        run: |
+          # Run Prettier on the changeset file to ensure it matches project style
+          npx prettier --write ".changeset/*.md"
+
+          echo "Formatted changeset files"
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
