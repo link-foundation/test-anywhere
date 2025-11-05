@@ -225,8 +225,8 @@ jobs:
             # Stage all changes (package.json, package-lock.json, CHANGELOG.md, deleted changesets)
             git add -A
 
-            # Commit with standard message
-            git commit -m "chore: version packages to $NEW_VERSION" \
+            # Commit with version number as message
+            git commit -m "$NEW_VERSION" \
                        -m "" \
                        -m "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
 
