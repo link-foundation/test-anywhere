@@ -210,8 +210,8 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "New version: $VERSION"
 
-          # Update PR title to include version
-          NEW_TITLE="chore: version packages (v${VERSION})"
+          # Update PR title to just the version number
+          NEW_TITLE="${VERSION}"
           gh pr edit "$PR_NUMBER" --title "$NEW_TITLE" --repo ${{ github.repository }}
 
           echo "✅ Updated PR #$PR_NUMBER title to: $NEW_TITLE"
