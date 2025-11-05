@@ -34,11 +34,13 @@ The issue is caused by a **GitHub Actions limitation**: When a workflow uses the
 Create a PAT with appropriate permissions and use it instead of `GITHUB_TOKEN` in the auto-merge workflow.
 
 **Pros:**
+
 - Simple to implement
 - Allows workflows to trigger other workflows
 - Maintains automated workflow
 
 **Cons:**
+
 - Requires creating and managing a PAT
 - PAT needs to be associated with a user account
 - Requires repository secret configuration
@@ -48,11 +50,13 @@ Create a PAT with appropriate permissions and use it instead of `GITHUB_TOKEN` i
 Create a GitHub App and use its token for merging.
 
 **Pros:**
+
 - More secure than PAT
 - Not tied to a specific user
 - Better audit trail
 
 **Cons:**
+
 - More complex setup
 - Requires creating and configuring a GitHub App
 
@@ -61,11 +65,13 @@ Create a GitHub App and use its token for merging.
 Remove the auto-merge workflow and require manual merging of version PRs.
 
 **Pros:**
+
 - Simple, no token management
 - Works immediately
 - More control over releases
 
 **Cons:**
+
 - Requires manual intervention
 - Less automated
 
@@ -74,16 +80,19 @@ Remove the auto-merge workflow and require manual merging of version PRs.
 Keep auto-merge but manually trigger releases when needed.
 
 **Pros:**
+
 - Maintains automation
 - Simple workaround
 
 **Cons:**
+
 - Still requires manual intervention for releases
 - Doesn't fully solve the automation goal
 
 ## Recommended Solution
 
 **Remove the auto-merge workflow** and require manual merging of version PRs. This is the simplest and most reliable solution that:
+
 1. Ensures the CI/CD workflow always triggers
 2. Gives maintainers control over when releases happen
 3. Requires no additional secret management
@@ -105,6 +114,7 @@ git pull
 ```
 
 The script will:
+
 1. Verify the version is 0.2.4
 2. Install dependencies
 3. Run tests
@@ -134,6 +144,7 @@ gh release create "v0.2.4" \
 ### Option 3: Trigger via GitHub Actions
 
 Since the fix removes the auto-merge workflow, you could also:
+
 1. Create an empty commit on main: `git commit --allow-empty -m "chore: trigger release"`
 2. Push to main
 3. The CI/CD workflow will run and create the release automatically
