@@ -91,6 +91,51 @@ Keep auto-merge but manually trigger releases when needed.
 
 The version PRs are already clearly labeled (e.g., "0.2.4") and easy to identify. The maintainer can review and merge them when ready, which will automatically trigger the release process.
 
-## Immediate Action Required
+## Immediate Action Required: Release 0.2.4
 
-For version 0.2.4 that's already merged but not released, we need to manually trigger the release by running the changeset publish command or creating a manual release.
+Version 0.2.4 is already merged to main but was never published. To release it manually:
+
+### Option 1: Use the provided script (Recommended)
+
+```bash
+cd /path/to/test-anywhere
+git checkout main
+git pull
+./experiments/manual-release-0.2.4.sh
+```
+
+The script will:
+1. Verify the version is 0.2.4
+2. Install dependencies
+3. Run tests
+4. Publish to NPM
+5. Create a GitHub release
+
+### Option 2: Manual steps
+
+```bash
+# Checkout main and ensure it's up to date
+git checkout main
+git pull
+
+# Install dependencies
+npm install
+
+# Publish to NPM (requires NPM_TOKEN)
+npm publish
+
+# Create GitHub release
+gh release create "v0.2.4" \
+  --title "v0.2.4" \
+  --notes "$(awk '/## 0.2.4/,/^## / {if (!/^## / || /## 0.2.4/) print}' CHANGELOG.md | tail -n +2 | head -n -1)" \
+  --repo link-foundation/test-anywhere
+```
+
+### Option 3: Trigger via GitHub Actions
+
+Since the fix removes the auto-merge workflow, you could also:
+1. Create an empty commit on main: `git commit --allow-empty -m "chore: trigger release"`
+2. Push to main
+3. The CI/CD workflow will run and create the release automatically
+
+**Note:** After this PR is merged, future version PRs should be manually merged to avoid this issue.
