@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.2.2
+
+### Patch Changes
+
+- 6df8569: Fix auto-merge workflow by enabling repository-level allow_auto_merge setting
+
 ## 0.2.1
 
 ### Patch Changes
