@@ -172,6 +172,10 @@ jobs:
     # Use always() to ensure this job runs even if changeset-check was skipped
     # This is needed because lint/test jobs have a transitive dependency on changeset-check
     if: always() && github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.lint.result == 'success' && needs.test-node.result == 'success' && needs.test-bun.result == 'success' && needs.test-deno.result == 'success'
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -181,65 +185,122 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Create Release Pull Request or Publish to npm
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          publish: npm run changeset:publish
-          version: npm run changeset:version
-          commit: 'chore: version packages'
-          title: 'chore: version packages'
-          createGithubReleases: true
+      - name: Check for changesets
+        id: check_changesets
+        run: |
+          # Count changeset files (excluding README.md and config.json)
+          CHANGESET_COUNT=$(find .changeset -name "*.md" ! -name "README.md" | wc -l)
+          echo "Found $CHANGESET_COUNT changeset file(s)"
+          echo "has_changesets=$([[ $CHANGESET_COUNT -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
+      - name: Version packages and commit to main
+        if: steps.check_changesets.outputs.has_changesets == 'true'
+        id: version
+        run: |
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Get current version before bump
+          OLD_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $OLD_VERSION"
+
+          # Run changeset version to bump versions and update CHANGELOG
+          npm run changeset:version
+
+          # Get new version after bump
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+          # Check if there are changes to commit
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "Changes detected, committing..."
+
+            # Stage all changes (package.json, package-lock.json, CHANGELOG.md, deleted changesets)
+            git add -A
+
+            # Commit with standard message
+            git commit -m "chore: version packages to $NEW_VERSION" \
+                       -m "" \
+                       -m "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+
+            # Push directly to main
+            git push origin main
+
+            echo "✅ Version bump committed and pushed to main"
+            echo "version_committed=true" >> $GITHUB_OUTPUT
+          else
+            echo "No changes to commit"
+            echo "version_committed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to npm
+        if: steps.version.outputs.version_committed == 'true'
+        id: publish
+        run: |
+          # Pull the latest changes we just pushed
+          git pull origin main
+
+          # Publish to npm
+          npm run changeset:publish
+
+          echo "published=true" >> $GITHUB_OUTPUT
+
+          # Get published version
+          PUBLISHED_VERSION=$(node -p "require('./package.json').version")
+          echo "published_version=$PUBLISHED_VERSION" >> $GITHUB_OUTPUT
+          echo "✅ Published test-anywhere@$PUBLISHED_VERSION to npm"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Update version PR title with version number
-        if: steps.changesets.outputs.pullRequestNumber != ''
+      - name: Create GitHub Release
+        if: steps.publish.outputs.published == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_NUMBER="${{ steps.changesets.outputs.pullRequestNumber }}"
-          echo "Version PR created: #$PR_NUMBER"
+          VERSION="${{ steps.publish.outputs.published_version }}"
+          TAG="v$VERSION"
 
-          # Extract version from package.json
-          VERSION=$(node -p "require('./package.json').version")
-          echo "New version: $VERSION"
+          echo "Creating GitHub release for $TAG..."
 
-          # Update PR title to just the version number
-          NEW_TITLE="${VERSION}"
-          gh pr edit "$PR_NUMBER" --title "$NEW_TITLE" --repo ${{ github.repository }}
+          # Extract changelog entry for this version
+          # Read from CHANGELOG.md between this version and the next version marker
+          RELEASE_NOTES=$(awk "/## $VERSION/,/## [0-9]/" CHANGELOG.md | sed '1d;$d' | sed '/^$/d')
 
-          echo "✅ Updated PR #$PR_NUMBER title to: $NEW_TITLE"
+          if [ -z "$RELEASE_NOTES" ]; then
+            RELEASE_NOTES="Release $VERSION"
+          fi
+
+          # Create release
+          gh release create "$TAG" \
+            --title "$VERSION" \
+            --notes "$RELEASE_NOTES" \
+            --repo ${{ github.repository }}
+
+          echo "✅ Created GitHub release: $TAG"
 
       - name: Format GitHub release notes
-        if: steps.changesets.outputs.published == 'true'
+        if: steps.publish.outputs.published == 'true'
         run: |
-          echo "Published packages:"
-          echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[] | "- \(.name)@\(.version)"'
+          VERSION="${{ steps.publish.outputs.published_version }}"
+          TAG="v$VERSION"
 
-          # Format release notes for each published package
-          for package in $(echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[] | @base64'); do
-            _jq() {
-              echo "${package}" | base64 --decode | jq -r "${1}"
-            }
+          # Get the release ID for this version
+          RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/$TAG --jq '.id' 2>/dev/null || echo "")
 
-            PKG_NAME=$(_jq '.name')
-            PKG_VERSION=$(_jq '.version')
-
-            # Get the release ID for this version
-            RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/v${PKG_VERSION} --jq '.id' 2>/dev/null || echo "")
-
-            if [ -n "$RELEASE_ID" ]; then
-              echo "Formatting release notes for v${PKG_VERSION}..."
-              node scripts/format-release-notes.mjs "${RELEASE_ID}" "v${PKG_VERSION}" "${{ github.repository }}"
-            else
-              echo "⚠️ Could not find release for v${PKG_VERSION}"
-            fi
-          done
+          if [ -n "$RELEASE_ID" ]; then
+            echo "Formatting release notes for $TAG..."
+            node scripts/format-release-notes.mjs "$RELEASE_ID" "$TAG" "${{ github.repository }}"
+            echo "✅ Formatted release notes for $TAG"
+          else
+            echo "⚠️ Could not find release for $TAG"
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
