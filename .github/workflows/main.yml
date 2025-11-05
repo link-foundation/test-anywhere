@@ -198,6 +198,24 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Update version PR title with version number
+        if: steps.changesets.outputs.pullRequestNumber != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.changesets.outputs.pullRequestNumber }}"
+          echo "Version PR created: #$PR_NUMBER"
+
+          # Extract version from package.json
+          VERSION=$(node -p "require('./package.json').version")
+          echo "New version: $VERSION"
+
+          # Update PR title to include version
+          NEW_TITLE="chore: version packages (v${VERSION})"
+          gh pr edit "$PR_NUMBER" --title "$NEW_TITLE" --repo ${{ github.repository }}
+
+          echo "✅ Updated PR #$PR_NUMBER title to: $NEW_TITLE"
+
       - name: Format GitHub release notes
         if: steps.changesets.outputs.published == 'true'
         run: |
