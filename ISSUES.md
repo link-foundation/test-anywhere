@@ -45,36 +45,42 @@ deepEqual(actual, expected, message = 'Expected values to be deeply equal') {
 **Problems:**
 
 1. **Property order matters** - Objects with same properties in different order will fail
+
    ```javascript
-   assert.deepEqual({a: 1, b: 2}, {b: 2, a: 1}); // FAILS (should PASS)
+   assert.deepEqual({ a: 1, b: 2 }, { b: 2, a: 1 }); // FAILS (should PASS)
    ```
 
 2. **`undefined` values disappear** - Properties with undefined are omitted
+
    ```javascript
-   assert.deepEqual({x: undefined}, {}); // PASSES (should FAIL)
+   assert.deepEqual({ x: undefined }, {}); // PASSES (should FAIL)
    assert.deepEqual([1, undefined, 3], [1, 3]); // Complex behavior
    ```
 
 3. **`NaN` becomes `null`** - Not treated as a value
+
    ```javascript
    assert.deepEqual(NaN, NaN); // FAILS (should PASS)
-   assert.deepEqual({x: NaN}, {x: null}); // PASSES (should FAIL)
+   assert.deepEqual({ x: NaN }, { x: null }); // PASSES (should FAIL)
    ```
 
 4. **Circular references throw errors** - Crashes instead of gracefully handling
+
    ```javascript
-   const obj = {a: 1};
+   const obj = { a: 1 };
    obj.self = obj;
    assert.deepEqual(obj, obj); // THROWS TypeError (should PASS)
    ```
 
 5. **Functions and Symbols ignored** - Lost during serialization
+
    ```javascript
    const fn = () => {};
-   assert.deepEqual({fn}, {fn}); // FAILS (should PASS)
+   assert.deepEqual({ fn }, { fn }); // FAILS (should PASS)
    ```
 
 6. **Date objects compared as strings** - Not compared by value
+
    ```javascript
    const d1 = new Date('2024-01-01');
    const d2 = new Date('2024-01-01');
@@ -87,6 +93,7 @@ deepEqual(actual, expected, message = 'Expected values to be deeply equal') {
    ```
 
 **Impact:**
+
 - Tests may pass when they should fail (false positives)
 - Tests may fail when they should pass (false negatives)
 - Application crashes on circular references
@@ -97,6 +104,7 @@ deepEqual(actual, expected, message = 'Expected values to be deeply equal') {
 Replace `JSON.stringify()` with a proper deep equality algorithm. Options:
 
 1. **Use runtime-specific assertions:**
+
    ```javascript
    // For Node.js
    import { strict as assert } from 'node:assert';
@@ -111,6 +119,7 @@ Replace `JSON.stringify()` with a proper deep equality algorithm. Options:
    ```
 
 2. **Implement proper deep equality:**
+
    ```javascript
    function deepEqual(a, b) {
      if (a === b) return true;
@@ -138,8 +147,8 @@ Replace `JSON.stringify()` with a proper deep equality algorithm. Options:
 
        if (keysA.length !== keysB.length) return false;
 
-       return keysA.every(key =>
-         keysB.includes(key) && deepEqual(a[key], b[key])
+       return keysA.every(
+         (key) => keysB.includes(key) && deepEqual(a[key], b[key])
        );
      }
 
@@ -188,6 +197,7 @@ assert.throws(async () => {
 ```
 
 **Impact:**
+
 - Async errors are not caught, leading to false positives in tests
 - Unhandled promise rejections may occur
 - Tests don't validate async error scenarios correctly
@@ -195,6 +205,7 @@ assert.throws(async () => {
 **Recommended Fix:**
 
 1. **Detect and handle promises:**
+
    ```javascript
    throws(fn, message = 'Expected function to throw') {
      let thrown = false;
@@ -254,6 +265,7 @@ equal(actual, expected, message = `Expected ${actual} to equal ${expected}`) {
 **Problems:**
 
 1. **Template evaluated even when not used:**
+
    ```javascript
    // Even with custom message, template is evaluated first
    assert.equal(obj1, obj2, 'Custom message');
@@ -261,19 +273,25 @@ equal(actual, expected, message = `Expected ${actual} to equal ${expected}`) {
    ```
 
 2. **Poor object representation:**
+
    ```javascript
-   assert.equal({a: 1}, {b: 2});
+   assert.equal({ a: 1 }, { b: 2 });
    // Error: "Expected [object Object] to equal [object Object]"
    // Not helpful at all
    ```
 
 3. **Can throw errors during stringification:**
    ```javascript
-   const obj = { toString() { throw new Error('Bad toString'); } };
+   const obj = {
+     toString() {
+       throw new Error('Bad toString');
+     },
+   };
    assert.equal(obj, {}, 'Custom message'); // Throws during parameter eval
    ```
 
 **Impact:**
+
 - Unhelpful error messages for failed assertions
 - Potential errors during parameter evaluation
 - Unnecessary performance overhead
@@ -292,6 +310,7 @@ equal(actual, expected, message) {
 ```
 
 **Same issue exists in other assertion methods:**
+
 - `index.js:60` - `ok()`
 - `index.js:78` - `deepEqual()`
 - `index.js:87` - `throws()`
@@ -324,17 +343,20 @@ import { test, assert } from 'test-anywhere';
 4. Examples are included in `npm test` but might fail in fresh clone
 
 **Current Behavior:**
+
 - Examples run in CI because package is installed
 - May not run for local contributors without additional setup
 
 **Recommended Fix:**
 
 **Option 1:** Use relative imports
+
 ```javascript
 import { test, assert } from '../index.js';
 ```
 
 **Option 2:** Document setup requirement in examples
+
 ```javascript
 /**
  * Example usage of test-anywhere in Node.js environment
@@ -347,6 +369,7 @@ import { test, assert } from '../index.js';
 ```
 
 **Option 3:** Exclude examples from default test runs
+
 ```json
 // deno.json
 {
@@ -399,6 +422,7 @@ The test suite lacks coverage for important edge cases that could reveal bugs.
    - No tests for runtime-specific quirks
 
 **Impact:**
+
 - Bugs may go undetected until production use
 - Refactoring is risky without comprehensive tests
 - Users may encounter unexpected behavior
@@ -410,14 +434,14 @@ Add comprehensive edge case test suite:
 ```javascript
 // Test deepEqual with property order
 test('deepEqual ignores property order', () => {
-  assert.deepEqual({a: 1, b: 2}, {b: 2, a: 1});
+  assert.deepEqual({ a: 1, b: 2 }, { b: 2, a: 1 });
 });
 
 // Test deepEqual with undefined
 test('deepEqual handles undefined', () => {
   let threw = false;
   try {
-    assert.deepEqual({x: undefined}, {});
+    assert.deepEqual({ x: undefined }, {});
   } catch (e) {
     threw = true;
   }
@@ -454,18 +478,18 @@ The workflow uses hardcoded string matching to filter PRs, which is fragile and 
 **Problem Code:**
 
 ```javascript
-const relevantPr = prsData.find(
-  (pr) => !pr.title.includes('version packages')
-);
+const relevantPr = prsData.find((pr) => !pr.title.includes('version packages'));
 ```
 
 **Problems:**
+
 1. Breaks if PR title format changes
 2. No clear documentation of expected format
 3. Could match unintended PRs if they contain the phrase
 4. Case-sensitive matching
 
 **Impact:**
+
 - Release automation could break
 - Manual intervention needed if format changes
 - Potential for incorrect PR attribution
@@ -473,21 +497,22 @@ const relevantPr = prsData.find(
 **Recommended Fix:**
 
 **Option 1:** Use labels instead of title matching
+
 ```javascript
 const relevantPr = prsData.find(
-  (pr) => !pr.labels.some(label => label.name === 'automated-release')
+  (pr) => !pr.labels.some((label) => label.name === 'automated-release')
 );
 ```
 
 **Option 2:** Use regex with more specific pattern
+
 ```javascript
 const VERSION_BUMP_PATTERN = /^chore:\s*version packages/i;
-const relevantPr = prsData.find(
-  (pr) => !VERSION_BUMP_PATTERN.test(pr.title)
-);
+const relevantPr = prsData.find((pr) => !VERSION_BUMP_PATTERN.test(pr.title));
 ```
 
 **Option 3:** Use GitHub's changeset bot PR metadata
+
 ```javascript
 const relevantPr = prsData.find(
   (pr) => pr.user.login !== 'github-actions[bot]'
@@ -527,6 +552,7 @@ if ! grep -qE "^['\"]test-anywhere['\"]:\s+(major|minor|patch)" "$CHANGESET_FILE
    - No validation for monorepo scenarios
 
 **Impact:**
+
 - Incorrect versioning could confuse users
 - Breaking changes might not be clearly signaled
 - Semver conventions not enforced
@@ -560,6 +586,7 @@ Errors are caught and logged but without details about what went wrong.
 ```
 
 **Problems:**
+
 - Error details are discarded (note the `_error` naming)
 - Difficult to debug when things go wrong
 - No distinction between different error types
@@ -577,6 +604,7 @@ Errors are caught and logged but without details about what went wrong.
 ```
 
 **Other locations with similar issues:**
+
 - `scripts/check-file-size.mjs:97` - Generic error handler
 - `scripts/changeset-version.mjs:22` - Limited error context
 
@@ -607,6 +635,7 @@ if (
 **Problems:**
 
 1. **Substring matching too broad:**
+
    ```javascript
    // Exclusion: 'node_modules'
    // Would exclude: 'my-node_modules-backup/', 'src/node_modules_list.js'
@@ -620,6 +649,7 @@ if (
    - Can't distinguish between `./node_modules` vs `./deep/node_modules`
 
 **Impact:**
+
 - Minimal - mostly works for intended use case
 - Could exclude unintended files in complex projects
 
@@ -638,9 +668,9 @@ if (filesToExclude.some(pattern => minimatch(relativePath, pattern))) {
 Or improve path matching:
 
 ```javascript
-const isExcluded = filesToExclude.some(pattern => {
+const isExcluded = filesToExclude.some((pattern) => {
   const parts = relativePath.split('/');
-  return parts.some(part => part === pattern);
+  return parts.some((part) => part === pattern);
 });
 ```
 
@@ -677,6 +707,7 @@ git pull origin main
    - Doesn't verify the pulled version matches expected
 
 **Impact:**
+
 - Extremely rare in practice (single-package repo with bot-only pushes to main)
 - Could cause publish to fail in edge cases
 
@@ -712,6 +743,7 @@ fi
 The package doesn't include TypeScript type definitions (`.d.ts` files).
 
 **Impact:**
+
 - TypeScript users get no autocomplete
 - No type checking for API usage
 - Reduced developer experience for TS users
@@ -781,6 +813,7 @@ test('assertion failures throw errors', () => {
 ```
 
 **Observation:**
+
 - All tests currently use arrow functions consistently
 - But ESLint config enforces `prefer-arrow-callback`
 - This is actually consistent - no issue here, just noting the style choice
@@ -798,6 +831,7 @@ test('assertion failures throw errors', () => {
 Error variables are named with leading underscore but never used. This is intentional per ESLint config but could provide more value.
 
 **Locations:**
+
 - `index.js:91` - `catch (_e)`
 - `index.test.js:44` - `catch (_e)`
 - `scripts/format-release-notes.mjs:82` - `catch (_error)`
@@ -807,7 +841,8 @@ Error variables are named with leading underscore but never used. This is intent
 ```javascript
 try {
   fn();
-} catch (_e) {  // Named but never used
+} catch (_e) {
+  // Named but never used
   thrown = true;
 }
 ```
@@ -815,8 +850,9 @@ try {
 **Observation:**
 
 This follows the ESLint rule:
+
 ```javascript
-caughtErrorsIgnorePattern: '^_'
+caughtErrorsIgnorePattern: '^_';
 ```
 
 **Recommendation:**
@@ -914,11 +950,13 @@ The codebase demonstrates many strengths:
 - **Low (🟢):** 6
 
 **Critical Issues Must Be Fixed:**
+
 1. `deepEqual` implementation (JSON.stringify flaws)
 2. `throws` doesn't handle async functions
 3. Error message construction
 
 **Highest Value Improvements:**
+
 1. Expand test coverage (catch bugs before users do)
 2. Fix example imports (better contributor experience)
 3. Add TypeScript definitions (better DX for TS users)

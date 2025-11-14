@@ -79,8 +79,12 @@ try {
     if (relevantPr) {
       prNumber = relevantPr.number;
     }
-  } catch (_error) {
+  } catch (error) {
     console.log('⚠️ Could not find PR for commit', commitHash);
+    console.log('   Error:', error.message);
+    if (process.env.DEBUG) {
+      console.error(error);
+    }
   }
 
   // Build formatted release notes

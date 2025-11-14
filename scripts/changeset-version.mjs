@@ -21,5 +21,8 @@ try {
   console.log('\n✅ Version bump complete with synchronized package-lock.json');
 } catch (error) {
   console.error('Error during version bump:', error.message);
+  if (process.env.DEBUG) {
+    console.error('Stack trace:', error.stack);
+  }
   process.exit(1);
 }
