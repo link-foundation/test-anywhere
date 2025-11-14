@@ -271,8 +271,8 @@ jobs:
           echo "Creating GitHub release for $TAG..."
 
           # Extract changelog entry for this version
-          # Read from CHANGELOG.md between this version and the next version marker
-          RELEASE_NOTES=$(awk "/## $VERSION/,/## [0-9]/" CHANGELOG.md | sed '1d;$d' | sed '/^$/d')
+          # Read from CHANGELOG.md between this version header and the next version header
+          RELEASE_NOTES=$(awk "/## $VERSION/{flag=1; next} /## [0-9]/{flag=0} flag" CHANGELOG.md)
 
           if [ -z "$RELEASE_NOTES" ]; then
             RELEASE_NOTES="Release $VERSION"
