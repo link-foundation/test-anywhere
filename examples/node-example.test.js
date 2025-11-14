@@ -8,7 +8,7 @@
  *   npm test
  */
 
-import { test, assert } from 'test-anywhere';
+import { test, assert } from '../index.js';
 
 test('basic assertions work in Node.js', () => {
   assert.ok(true, 'ok assertion works');

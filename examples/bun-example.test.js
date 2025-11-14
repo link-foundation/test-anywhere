@@ -5,7 +5,7 @@
  *   bun test examples/bun-example.test.js
  */
 
-import { test, assert } from 'test-anywhere';
+import { test, assert } from '../index.js';
 
 test('basic assertions work in Bun', () => {
   assert.ok(true, 'ok assertion works');

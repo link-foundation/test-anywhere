@@ -96,5 +96,8 @@ async function main() {
 
 main().catch((error) => {
   console.error('Error:', error.message);
+  if (process.env.DEBUG) {
+    console.error('Stack trace:', error.stack);
+  }
   process.exit(1);
 });
