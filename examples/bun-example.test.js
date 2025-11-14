@@ -5,12 +5,41 @@
  *   bun test examples/bun-example.test.js
  */
 
-import { test, assert } from '../index.js';
+import {
+  test,
+  assert,
+  beforeAll,
+  beforeEach,
+  afterEach,
+  afterAll,
+} from '../src/index.js';
+
+let setupValue = null;
+
+beforeAll(() => {
+  console.log('Setting up Bun test suite...');
+});
+
+beforeEach(() => {
+  setupValue = 'initialized';
+});
+
+afterEach(() => {
+  setupValue = null;
+});
+
+afterAll(() => {
+  console.log('Cleaning up Bun test suite...');
+});
 
 test('basic assertions work in Bun', () => {
   assert.ok(true, 'ok assertion works');
   assert.equal(1 + 1, 2, 'equal assertion works');
   assert.deepEqual({ a: 1 }, { a: 1 }, 'deepEqual assertion works');
+});
+
+test('beforeEach hook sets up value', () => {
+  assert.equal(setupValue, 'initialized', 'setup value should be initialized');
 });
 
 test('assertion failures throw errors', () => {

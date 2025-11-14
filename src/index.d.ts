@@ -91,6 +91,30 @@ export interface Assert {
 export function test(name: string, fn: () => void | Promise<void>): void;
 
 /**
+ * Register a function to run once before all tests
+ * @param fn - Function to run before all tests (can be async)
+ */
+export function beforeAll(fn: () => void | Promise<void>): void;
+
+/**
+ * Register a function to run before each test
+ * @param fn - Function to run before each test (can be async)
+ */
+export function beforeEach(fn: () => void | Promise<void>): void;
+
+/**
+ * Register a function to run after each test
+ * @param fn - Function to run after each test (can be async)
+ */
+export function afterEach(fn: () => void | Promise<void>): void;
+
+/**
+ * Register a function to run once after all tests
+ * @param fn - Function to run after all tests (can be async)
+ */
+export function afterAll(fn: () => void | Promise<void>): void;
+
+/**
  * Get the current runtime name
  * @returns The runtime name ('bun', 'deno', or 'node')
  */
@@ -108,6 +132,10 @@ declare const _default: {
   test: typeof test;
   assert: Assert;
   getRuntime: typeof getRuntime;
+  beforeAll: typeof beforeAll;
+  beforeEach: typeof beforeEach;
+  afterEach: typeof afterEach;
+  afterAll: typeof afterAll;
 };
 
 export default _default;
