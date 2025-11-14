@@ -12,15 +12,18 @@ This document analyzes the current `test-anywhere` public API to ensure it focus
 ## Current API (v0.4.1)
 
 ### Test Definition
+
 - `test(name, fn)` - Standard test definition
 
 ### Lifecycle Hooks
+
 - `beforeAll(fn)` - Runs once before all tests
 - `beforeEach(fn)` - Runs before each test
 - `afterEach(fn)` - Runs after each test
 - `afterAll(fn)` - Runs once after all tests
 
 ### Assertions
+
 - `assert.ok(value, message?)` - Truthy assertion
 - `assert.equal(actual, expected, message?)` - Strict equality
 - `assert.notEqual(actual, expected, message?)` - Strict inequality
@@ -32,6 +35,7 @@ This document analyzes the current `test-anywhere` public API to ensure it focus
 - `assert.includes(container, value, message?)` - Array/string inclusion
 
 ### Utilities
+
 - `getRuntime()` - Returns current runtime name
 
 ## Native Framework Support Analysis
@@ -41,22 +45,25 @@ This document analyzes the current `test-anywhere` public API to ensure it focus
 #### Current Status: ✅ GOOD - Needs Extension
 
 **What we have:**
+
 - `test(name, fn)` ✅
 
 **What's standard in native frameworks:**
 
-| Function | Bun | Deno | Node.js | Standard? |
-|----------|-----|------|---------|-----------|
-| `test()` | ✅ | ✅ (Deno.test) | ✅ | **YES - Core** |
-| `it()` | ❌ | ✅ (via @std/testing/bdd) | ✅ | **YES - Mocha/Jest** |
-| `describe()` | ✅ | ✅ (via @std/testing/bdd) | ✅ | **YES - BDD style** |
+| Function     | Bun | Deno                      | Node.js | Standard?            |
+| ------------ | --- | ------------------------- | ------- | -------------------- |
+| `test()`     | ✅  | ✅ (Deno.test)            | ✅      | **YES - Core**       |
+| `it()`       | ❌  | ✅ (via @std/testing/bdd) | ✅      | **YES - Mocha/Jest** |
+| `describe()` | ✅  | ✅ (via @std/testing/bdd) | ✅      | **YES - BDD style**  |
 
 **Analysis:**
+
 - `test()` is well-supported ✅
 - **MISSING:** `it()` alias - Standard in Mocha/Jest, available in Node.js and Deno BDD
 - **MISSING:** `describe()` - Standard grouping in all frameworks
 
 **Recommendation:**
+
 - ✅ **Add `it()` as an alias to `test()`** - This is standard Mocha/Jest/Node.js syntax
 - ✅ **Add `describe()` for test grouping** - Supported by all three runtimes
 
@@ -65,6 +72,7 @@ This document analyzes the current `test-anywhere` public API to ensure it focus
 #### Current Status: ⚠️ NAMING INCONSISTENCY
 
 **What we have:**
+
 - `beforeAll()` ✅
 - `beforeEach()` ✅
 - `afterEach()` ✅
@@ -72,14 +80,15 @@ This document analyzes the current `test-anywhere` public API to ensure it focus
 
 **Native framework mapping:**
 
-| Our Hook | Bun | Deno | Node.js | Status |
-|----------|-----|------|---------|--------|
-| `beforeAll()` | `beforeAll()` | `Deno.test.beforeAll()` or BDD | `before()` | ⚠️ Node uses `before()` |
-| `beforeEach()` | `beforeEach()` | `Deno.test.beforeEach()` or BDD | `beforeEach()` | ✅ Consistent |
-| `afterEach()` | `afterEach()` | `Deno.test.afterEach()` or BDD | `afterEach()` | ✅ Consistent |
-| `afterAll()` | `afterAll()` | `Deno.test.afterAll()` or BDD | `after()` | ⚠️ Node uses `after()` |
+| Our Hook       | Bun            | Deno                            | Node.js        | Status                  |
+| -------------- | -------------- | ------------------------------- | -------------- | ----------------------- |
+| `beforeAll()`  | `beforeAll()`  | `Deno.test.beforeAll()` or BDD  | `before()`     | ⚠️ Node uses `before()` |
+| `beforeEach()` | `beforeEach()` | `Deno.test.beforeEach()` or BDD | `beforeEach()` | ✅ Consistent           |
+| `afterEach()`  | `afterEach()`  | `Deno.test.afterEach()` or BDD  | `afterEach()`  | ✅ Consistent           |
+| `afterAll()`   | `afterAll()`   | `Deno.test.afterAll()` or BDD   | `after()`      | ⚠️ Node uses `after()`  |
 
 **Analysis:**
+
 - Bun uses: `beforeAll`, `beforeEach`, `afterEach`, `afterAll` (Jest-style)
 - Deno BDD module uses: `beforeAll`, `beforeEach`, `afterEach`, `afterAll` (Jest-style)
 - Node.js uses: `before`, `beforeEach`, `afterEach`, `after` (Mocha-style)
@@ -88,6 +97,7 @@ This document analyzes the current `test-anywhere` public API to ensure it focus
 Our library currently normalizes to the Jest-style names (`beforeAll`/`afterAll`) and internally maps to Node's `before`/`after`. This is **GOOD** as stated in the issue: "Normalization of before and after methods should stay."
 
 **Recommendation:**
+
 - ✅ **Keep current normalization** - This is explicitly approved in issue #65
 - ✅ **Optionally add `before()` and `after()` aliases** for Mocha-style compatibility
 
@@ -96,25 +106,28 @@ Our library currently normalizes to the Jest-style names (`beforeAll`/`afterAll`
 #### Current Status: ❌ MISSING - Critical for Standard Compatibility
 
 **What we have:**
+
 - None
 
 **What's standard across frameworks:**
 
-| Modifier | Bun | Deno | Node.js | Jest/Mocha | Priority |
-|----------|-----|------|---------|------------|----------|
-| `test.skip()` / `it.skip()` | ✅ | `ignore: true` | `skip: true` | ✅ Jest/Mocha | **HIGH** |
-| `test.only()` / `it.only()` | ✅ | `only: true` | `only: true` | ✅ Jest/Mocha | **HIGH** |
-| `test.todo()` / `it.todo()` | ✅ | ❌ | `todo: true` | ✅ Jest | **MEDIUM** |
-| `describe.skip()` | ✅ | Via BDD | ✅ | ✅ Jest/Mocha | **HIGH** |
-| `describe.only()` | ✅ | Via BDD | ✅ | ✅ Jest/Mocha | **HIGH** |
+| Modifier                    | Bun | Deno           | Node.js      | Jest/Mocha    | Priority   |
+| --------------------------- | --- | -------------- | ------------ | ------------- | ---------- |
+| `test.skip()` / `it.skip()` | ✅  | `ignore: true` | `skip: true` | ✅ Jest/Mocha | **HIGH**   |
+| `test.only()` / `it.only()` | ✅  | `only: true`   | `only: true` | ✅ Jest/Mocha | **HIGH**   |
+| `test.todo()` / `it.todo()` | ✅  | ❌             | `todo: true` | ✅ Jest       | **MEDIUM** |
+| `describe.skip()`           | ✅  | Via BDD        | ✅           | ✅ Jest/Mocha | **HIGH**   |
+| `describe.only()`           | ✅  | Via BDD        | ✅           | ✅ Jest/Mocha | **HIGH**   |
 
 **Analysis:**
 Test modifiers are **standard features** in Jest and Mocha that are widely used:
+
 - `skip()` - Temporarily disable tests
 - `only()` - Run only specific tests (debugging)
 - `todo()` - Mark tests as pending implementation
 
 **Recommendation:**
+
 - ✅ **Add `test.skip()`** - Standard in all frameworks
 - ✅ **Add `test.only()`** - Standard in all frameworks
 - ✅ **Add `test.todo()`** - Standard in Jest and Node.js
@@ -127,6 +140,7 @@ Test modifiers are **standard features** in Jest and Mocha that are widely used:
 
 **What we have:**
 All our assertions use function-based syntax similar to Node.js assert and Deno's @std/assert:
+
 - `assert.ok()` ✅
 - `assert.equal()` ✅
 - `assert.notEqual()` ✅
@@ -139,32 +153,34 @@ All our assertions use function-based syntax similar to Node.js assert and Deno'
 
 **Native framework comparison:**
 
-| Assertion Type | Node.js | Deno (@std/assert) | Bun | Our Implementation |
-|----------------|---------|--------------------|----|-------------------|
-| Truthy | `assert.ok()` | `assert()` | `expect().toBeTruthy()` | ✅ `assert.ok()` |
-| Strict Equal | `assert.strictEqual()` | `assertStrictEquals()` | `expect().toBe()` | ✅ `assert.equal()` |
-| Deep Equal | `assert.deepStrictEqual()` | `assertEquals()` | `expect().toEqual()` | ✅ `assert.deepEqual()` |
-| Not Equal | `assert.notStrictEqual()` | `assertNotEquals()` | `expect().not.toBe()` | ✅ `assert.notEqual()` |
-| Throws | `assert.throws()` | `assertThrows()` | `expect().toThrow()` | ✅ `assert.throws()` |
-| Async Throws | `assert.rejects()` | `assertRejects()` | `expect().rejects` | ✅ `assert.throwsAsync()` |
-| Regex Match | `assert.match()` | `assertMatch()` | `expect().toMatch()` | ✅ `assert.match()` |
+| Assertion Type | Node.js                    | Deno (@std/assert)     | Bun                     | Our Implementation        |
+| -------------- | -------------------------- | ---------------------- | ----------------------- | ------------------------- |
+| Truthy         | `assert.ok()`              | `assert()`             | `expect().toBeTruthy()` | ✅ `assert.ok()`          |
+| Strict Equal   | `assert.strictEqual()`     | `assertStrictEquals()` | `expect().toBe()`       | ✅ `assert.equal()`       |
+| Deep Equal     | `assert.deepStrictEqual()` | `assertEquals()`       | `expect().toEqual()`    | ✅ `assert.deepEqual()`   |
+| Not Equal      | `assert.notStrictEqual()`  | `assertNotEquals()`    | `expect().not.toBe()`   | ✅ `assert.notEqual()`    |
+| Throws         | `assert.throws()`          | `assertThrows()`       | `expect().toThrow()`    | ✅ `assert.throws()`      |
+| Async Throws   | `assert.rejects()`         | `assertRejects()`      | `expect().rejects`      | ✅ `assert.throwsAsync()` |
+| Regex Match    | `assert.match()`           | `assertMatch()`        | `expect().toMatch()`    | ✅ `assert.match()`       |
 
 **Analysis:**
+
 - Our assertion API follows the Node.js/Deno function-based pattern ✅
 - We do NOT use Bun's `expect()` chainable style - this is intentional for cross-runtime compatibility
 - All our assertions map to standard Node.js assert methods
 
 **Additional Standard Assertions to Consider:**
 
-| Assertion | Node.js | Deno | Why Add? |
-|-----------|---------|------|----------|
-| `assert.strictEqual()` | ✅ | `assertStrictEquals()` | Explicit strict equality |
-| `assert.deepStrictEqual()` | ✅ | `assertEquals()` | Explicit deep strict equality |
-| `assert.rejects()` | ✅ | `assertRejects()` | More standard than `throwsAsync` |
-| `assert.doesNotThrow()` | ✅ | ❌ | Less commonly used |
-| `assert.ifError()` | ✅ | ❌ | Node.js specific |
+| Assertion                  | Node.js | Deno                   | Why Add?                         |
+| -------------------------- | ------- | ---------------------- | -------------------------------- |
+| `assert.strictEqual()`     | ✅      | `assertStrictEquals()` | Explicit strict equality         |
+| `assert.deepStrictEqual()` | ✅      | `assertEquals()`       | Explicit deep strict equality    |
+| `assert.rejects()`         | ✅      | `assertRejects()`      | More standard than `throwsAsync` |
+| `assert.doesNotThrow()`    | ✅      | ❌                     | Less commonly used               |
+| `assert.ifError()`         | ✅      | ❌                     | Node.js specific                 |
 
 **Recommendation:**
+
 - ✅ **Keep current assertion API** - It's well-designed and standard
 - ⚠️ **Consider adding `assert.strictEqual()` as alias to `equal()`** for Node.js compatibility
 - ⚠️ **Consider adding `assert.deepStrictEqual()` as alias to `deepEqual()`** for Node.js compatibility
@@ -188,11 +204,13 @@ test('my test', (t) => {
 ```
 
 **Analysis:**
+
 - Node.js subtests (`t.test()`) are a powerful feature
 - Deno and Bun don't have direct equivalents
 - We can provide this for Node.js only, or skip it for simplicity
 
 **Recommendation:**
+
 - ⚠️ **Optional:** Pass through Node.js test context for advanced users
 - ❌ **Don't emulate for Deno/Bun** - Would be non-standard custom behavior
 
@@ -212,12 +230,14 @@ test.each([
 ```
 
 **Analysis:**
+
 - This is a Jest-standard feature
 - Bun supports it natively
 - Node.js and Deno don't have native support
 - Users can implement with loops
 
 **Recommendation:**
+
 - ❌ **Don't add `test.each()`** - Not universally supported, users can use loops
 - Can be added later if there's demand
 
@@ -275,7 +295,7 @@ export function describe(name, fn) {
 
 ```javascript
 // Add modifiers to test function
-test.skip = function(name, fn) {
+test.skip = function (name, fn) {
   if (runtime === 'bun') {
     return bunTest.test.skip(name, fn);
   } else if (runtime === 'deno') {
@@ -285,7 +305,7 @@ test.skip = function(name, fn) {
   }
 };
 
-test.only = function(name, fn) {
+test.only = function (name, fn) {
   if (runtime === 'bun') {
     return bunTest.test.only(name, fn);
   } else if (runtime === 'deno') {
@@ -295,12 +315,16 @@ test.only = function(name, fn) {
   }
 };
 
-test.todo = function(name, fn) {
+test.todo = function (name, fn) {
   if (runtime === 'bun') {
     return bunTest.test.todo(name);
   } else if (runtime === 'deno') {
     // Deno doesn't have native todo, simulate with skip
-    return Deno.test({ name: `[TODO] ${name}`, ignore: true, fn: fn || (() => {}) });
+    return Deno.test({
+      name: `[TODO] ${name}`,
+      ignore: true,
+      fn: fn || (() => {}),
+    });
   } else {
     return nodeTest.test(name, { todo: true }, fn);
   }
@@ -347,7 +371,7 @@ export const after = afterAll;
 ```javascript
 assert.strictEqual = assert.equal;
 assert.deepStrictEqual = assert.deepEqual;
-assert.rejects = assert.throwsAsync;  // More standard name
+assert.rejects = assert.throwsAsync; // More standard name
 ```
 
 ## Files That Need Updates
@@ -361,6 +385,7 @@ assert.rejects = assert.throwsAsync;  // More standard name
 ## Backward Compatibility
 
 All changes are **additive** - no breaking changes:
+
 - Existing `test()` continues to work ✅
 - Existing hooks continue to work ✅
 - Existing assertions continue to work ✅
@@ -379,6 +404,7 @@ By adding these features, we'll provide complete Jest and Mocha compatibility wh
 ---
 
 **Next Steps:**
+
 1. Get approval on this analysis and recommendations
 2. Implement Phase 1-3 (core BDD syntax + modifiers)
 3. Update tests and documentation

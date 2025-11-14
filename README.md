@@ -44,21 +44,51 @@ import { test, assert } from './node_modules/test-anywhere/index.js';
 
 ## Usage
 
-### Node.js
+### Basic Test Syntax
 
-Create a test file (e.g., `example.test.js`):
+You can use either `test()` or `it()` (Mocha/Jest style):
 
 ```javascript
-import { test, assert } from 'test-anywhere';
+import { test, it, assert } from 'test-anywhere';
 
+// Using test()
 test('basic math works', () => {
   assert.equal(1 + 1, 2);
 });
 
-test('objects can be compared', () => {
+// Using it() - same as test()
+it('should compare objects', () => {
   assert.deepEqual({ a: 1 }, { a: 1 });
 });
 ```
+
+### BDD-Style with describe()
+
+Group related tests using `describe()` blocks:
+
+```javascript
+import { describe, it, assert } from 'test-anywhere';
+
+describe('user module', () => {
+  describe('creation', () => {
+    it('should create a new user', () => {
+      assert.ok(true);
+    });
+
+    it('should validate email format', () => {
+      assert.match('user@example.com', /@/);
+    });
+  });
+
+  describe('deletion', () => {
+    it('should delete existing user', () => {
+      assert.ok(true);
+    });
+  });
+});
+```
+
+### Node.js
 
 Run tests:
 
@@ -117,9 +147,11 @@ bun test
 
 ## API Reference
 
-### `test(name, fn)`
+### Test Definition
 
-Creates a test with the given name and test function.
+#### `test(name, fn)` / `it(name, fn)`
+
+Creates a test with the given name and test function. `it()` is an alias for `test()`.
 
 **Parameters:**
 
@@ -131,6 +163,78 @@ Creates a test with the given name and test function.
 ```javascript
 test('my test name', () => {
   // test code here
+});
+
+// or using it() - Mocha/Jest style
+it('should do something', () => {
+  // test code here
+});
+```
+
+#### `describe(name, fn)`
+
+Groups related tests together (BDD style).
+
+**Parameters:**
+
+- `name` (string): The suite name
+- `fn` (function): Function containing tests and setup/teardown hooks
+
+**Example:**
+
+```javascript
+describe('user authentication', () => {
+  it('should login with valid credentials', () => {
+    // test code
+  });
+
+  it('should reject invalid credentials', () => {
+    // test code
+  });
+});
+```
+
+### Test Modifiers
+
+#### `test.skip(name, fn)` / `it.skip(name, fn)`
+
+Skip a test (won't be executed).
+
+```javascript
+test.skip('broken test', () => {
+  // This test will be skipped
+});
+```
+
+#### `test.only(name, fn)` / `it.only(name, fn)`
+
+Run only this test (useful for debugging).
+
+```javascript
+test.only('debug this test', () => {
+  // Only this test will run
+});
+```
+
+#### `test.todo(name)` / `it.todo(name)`
+
+Mark a test as pending/TODO.
+
+```javascript
+test.todo('implement this feature');
+```
+
+#### `describe.skip(name, fn)` / `describe.only(name, fn)`
+
+Skip or isolate an entire test suite.
+
+```javascript
+describe.skip('integration tests', () => {
+  // All tests in this suite will be skipped
+});
+
+describe.only('unit tests', () => {
+  // Only tests in this suite will run
 });
 ```
 
@@ -176,6 +280,58 @@ Asserts that a function throws an error when called.
 ```javascript
 assert.throws(() => {
   throw new Error('oops');
+});
+```
+
+### Lifecycle Hooks
+
+Setup and teardown hooks for test initialization and cleanup.
+
+#### `beforeAll(fn)` / `before(fn)`
+
+Runs once before all tests. `before()` is a Mocha-style alias.
+
+```javascript
+import { beforeAll, describe, it } from 'test-anywhere';
+
+describe('database tests', () => {
+  beforeAll(() => {
+    // Connect to database once
+  });
+
+  it('should query data', () => {
+    // test code
+  });
+});
+```
+
+#### `beforeEach(fn)`
+
+Runs before each test.
+
+```javascript
+beforeEach(() => {
+  // Reset state before each test
+});
+```
+
+#### `afterEach(fn)`
+
+Runs after each test.
+
+```javascript
+afterEach(() => {
+  // Clean up after each test
+});
+```
+
+#### `afterAll(fn)` / `after(fn)`
+
+Runs once after all tests. `after()` is a Mocha-style alias.
+
+```javascript
+afterAll(() => {
+  // Disconnect from database
 });
 ```
 

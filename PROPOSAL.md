@@ -7,6 +7,7 @@ After analyzing our current API against the native testing frameworks (Bun, Deno
 ## Current API Status: ✅ GOOD Foundation
 
 **What we have that's correct:**
+
 - ✅ `test()` function - Standard across all frameworks
 - ✅ Lifecycle hooks with normalized names (`beforeAll`, `afterAll`, etc.) - As requested in issue
 - ✅ Function-based assertions compatible with Node.js assert and Deno @std/assert
@@ -16,7 +17,7 @@ After analyzing our current API against the native testing frameworks (Bun, Deno
 
 ### Priority 1: Core BDD Syntax (HIGH - Most Important)
 
-As mentioned in the issue: *"We can merge `test`, `describe`, `it` methods, so we support both jest style and mocha style."*
+As mentioned in the issue: _"We can merge `test`, `describe`, `it` methods, so we support both jest style and mocha style."_
 
 **Add these core functions:**
 
@@ -80,21 +81,26 @@ export function it(name, fn) {
 ### For modifiers:
 
 ```javascript
-test.skip = function(name, fn) {
+test.skip = function (name, fn) {
   if (runtime === 'bun') return bunTest.test.skip(name, fn);
   if (runtime === 'deno') return Deno.test({ name, ignore: true, fn });
   return nodeTest.test(name, { skip: true }, fn);
 };
 
-test.only = function(name, fn) {
+test.only = function (name, fn) {
   if (runtime === 'bun') return bunTest.test.only(name, fn);
   if (runtime === 'deno') return Deno.test({ name, only: true, fn });
   return nodeTest.test(name, { only: true }, fn);
 };
 
-test.todo = function(name, fn) {
+test.todo = function (name, fn) {
   if (runtime === 'bun') return bunTest.test.todo(name);
-  if (runtime === 'deno') return Deno.test({ name: `[TODO] ${name}`, ignore: true, fn: fn || (() => {}) });
+  if (runtime === 'deno')
+    return Deno.test({
+      name: `[TODO] ${name}`,
+      ignore: true,
+      fn: fn || (() => {}),
+    });
   return nodeTest.test(name, { todo: true }, fn);
 };
 ```
@@ -117,6 +123,7 @@ test.todo = function(name, fn) {
 ## Example: Before vs After
 
 ### Before (Current - Works but limited):
+
 ```javascript
 import { test, assert } from 'test-anywhere';
 
@@ -130,6 +137,7 @@ test('user deletion works', () => {
 ```
 
 ### After (Proposed - Full BDD style):
+
 ```javascript
 import { describe, it, assert } from 'test-anywhere';
 

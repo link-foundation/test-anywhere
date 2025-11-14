@@ -84,11 +84,45 @@ export interface Assert {
 }
 
 /**
+ * Test function interface with modifiers
+ */
+export interface TestFunction {
+  (name: string, fn: () => void | Promise<void>): void;
+  skip(name: string, fn?: () => void | Promise<void>): void;
+  only(name: string, fn: () => void | Promise<void>): void;
+  todo(name: string, fn?: () => void | Promise<void>): void;
+}
+
+/**
+ * Describe function interface with modifiers
+ */
+export interface DescribeFunction {
+  (name: string, fn: () => void): void;
+  skip(name: string, fn: () => void): void;
+  only(name: string, fn: () => void): void;
+}
+
+/**
  * Universal test function that works across Bun, Deno, and Node.js
  * @param name - Test name
  * @param fn - Test function (can be async)
  */
-export function test(name: string, fn: () => void | Promise<void>): void;
+export const test: TestFunction;
+
+/**
+ * Alias for test() - Mocha/Jest style
+ * @param name - Test name
+ * @param fn - Test function (can be async)
+ */
+export const it: TestFunction;
+
+/**
+ * Universal describe function for grouping tests (BDD style)
+ * Works across Bun, Deno, and Node.js
+ * @param name - Suite name
+ * @param fn - Suite function containing tests
+ */
+export const describe: DescribeFunction;
 
 /**
  * Register a function to run once before all tests
@@ -115,6 +149,18 @@ export function afterEach(fn: () => void | Promise<void>): void;
 export function afterAll(fn: () => void | Promise<void>): void;
 
 /**
+ * Mocha-style alias for beforeAll()
+ * @param fn - Function to run before all tests (can be async)
+ */
+export const before: typeof beforeAll;
+
+/**
+ * Mocha-style alias for afterAll()
+ * @param fn - Function to run after all tests (can be async)
+ */
+export const after: typeof afterAll;
+
+/**
  * Get the current runtime name
  * @returns The runtime name ('bun', 'deno', or 'node')
  */
@@ -129,13 +175,17 @@ export const assert: Assert;
  * Default export containing all exports
  */
 declare const _default: {
-  test: typeof test;
+  test: TestFunction;
+  it: TestFunction;
+  describe: DescribeFunction;
   assert: Assert;
   getRuntime: typeof getRuntime;
   beforeAll: typeof beforeAll;
   beforeEach: typeof beforeEach;
   afterEach: typeof afterEach;
   afterAll: typeof afterAll;
+  before: typeof beforeAll;
+  after: typeof afterAll;
 };
 
 export default _default;
