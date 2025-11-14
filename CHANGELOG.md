@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.4.1
+
+### Patch Changes
+
+- 3b581b2: Add comprehensive comparison of native testing frameworks in Bun, Deno, and Node.js, including detailed documentation of test definition APIs, lifecycle hooks, assertion libraries, mocking capabilities, snapshot testing, coverage features, and migration recommendations.
+
 ## 0.4.0
 
 ### Minor Changes
