@@ -3,16 +3,16 @@
   "version": "0.3.0",
   "description": "A JavaScript testing framework that is built on top of built-in testing frameworks of Bun, Deno, and Node.js",
   "type": "module",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
   "exports": {
     ".": {
-      "types": "./index.d.ts",
-      "import": "./index.js"
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
     }
   },
   "scripts": {
-    "test": "node --test",
+    "test": "node --test tests/*.test.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

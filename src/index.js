@@ -17,19 +17,106 @@ const runtime = (() => {
   return 'node';
 })();
 
-// Import the appropriate test function based on runtime
+// Import the appropriate test function and hooks based on runtime
 let nativeTest;
+let nativeBeforeEach;
+let nativeAfterEach;
+let nativeBeforeAll;
+let nativeAfterAll;
+
 if (runtime === 'bun') {
   // Bun test is imported from bun:test
-  const { test: bunTest } = await import('bun:test');
-  nativeTest = bunTest;
+  const bunTest = await import('bun:test');
+  nativeTest = bunTest.test;
+  nativeBeforeEach = bunTest.beforeEach;
+  nativeAfterEach = bunTest.afterEach;
+  nativeBeforeAll = bunTest.beforeAll;
+  nativeAfterAll = bunTest.afterAll;
 } else if (runtime === 'deno') {
-  // Deno has Deno.test global
+  // Deno has Deno.test global but no built-in hooks
+  // We'll implement hooks manually for Deno
   nativeTest = Deno.test;
+  nativeBeforeEach = null;
+  nativeAfterEach = null;
+  nativeBeforeAll = null;
+  nativeAfterAll = null;
 } else {
   // Node.js test from node:test
-  const { test: nodeTest } = await import('node:test');
-  nativeTest = nodeTest;
+  const nodeTest = await import('node:test');
+  nativeTest = nodeTest.test;
+  nativeBeforeEach = nodeTest.beforeEach;
+  nativeAfterEach = nodeTest.afterEach;
+  // Node uses 'before' and 'after' instead of 'beforeAll' and 'afterAll'
+  nativeBeforeAll = nodeTest.before;
+  nativeAfterAll = nodeTest.after;
+}
+
+// Hook storage for manual implementation (used by Deno and as a unified interface)
+const hooks = {
+  beforeAll: [],
+  beforeEach: [],
+  afterEach: [],
+  afterAll: [],
+};
+
+let beforeAllRun = false;
+let testCount = 0;
+let completedTestCount = 0;
+
+/**
+ * Register a function to run once before all tests
+ * @param {Function} fn - Function to run before all tests
+ */
+export function beforeAll(fn) {
+  if (runtime === 'deno') {
+    // For Deno, store the hook to run manually
+    hooks.beforeAll.push(fn);
+  } else {
+    // For Node and Bun, use native implementation
+    nativeBeforeAll(fn);
+  }
+}
+
+/**
+ * Register a function to run before each test
+ * @param {Function} fn - Function to run before each test
+ */
+export function beforeEach(fn) {
+  if (runtime === 'deno') {
+    // For Deno, store the hook to run manually
+    hooks.beforeEach.push(fn);
+  } else {
+    // For Node and Bun, use native implementation
+    nativeBeforeEach(fn);
+  }
+}
+
+/**
+ * Register a function to run after each test
+ * @param {Function} fn - Function to run after each test
+ */
+export function afterEach(fn) {
+  if (runtime === 'deno') {
+    // For Deno, store the hook to run manually
+    hooks.afterEach.push(fn);
+  } else {
+    // For Node and Bun, use native implementation
+    nativeAfterEach(fn);
+  }
+}
+
+/**
+ * Register a function to run once after all tests
+ * @param {Function} fn - Function to run after all tests
+ */
+export function afterAll(fn) {
+  if (runtime === 'deno') {
+    // For Deno, store the hook to run manually
+    hooks.afterAll.push(fn);
+  } else {
+    // For Node and Bun, use native implementation
+    nativeAfterAll(fn);
+  }
 }
 
 /**
@@ -38,7 +125,46 @@ if (runtime === 'bun') {
  * @param {Function} fn - Test function
  */
 export function test(name, fn) {
-  return nativeTest(name, fn);
+  if (runtime === 'deno') {
+    // For Deno, wrap the test function to run hooks manually
+    testCount++;
+    return nativeTest(name, async () => {
+      // Run beforeAll hooks once
+      if (!beforeAllRun && hooks.beforeAll.length > 0) {
+        beforeAllRun = true;
+        for (const hook of hooks.beforeAll) {
+          await hook();
+        }
+      }
+
+      // Run beforeEach hooks
+      for (const hook of hooks.beforeEach) {
+        await hook();
+      }
+
+      // Run the actual test
+      try {
+        await fn();
+      } finally {
+        // Run afterEach hooks
+        for (const hook of hooks.afterEach) {
+          await hook();
+        }
+
+        // Track completed tests and run afterAll when all tests are done
+        completedTestCount++;
+        if (completedTestCount === testCount && hooks.afterAll.length > 0) {
+          for (const hook of hooks.afterAll) {
+            await hook();
+          }
+        }
+      }
+    });
+  } else {
+    // For Node and Bun, just use the native test function
+    // (hooks are handled by the runtime)
+    return nativeTest(name, fn);
+  }
 }
 
 /**
@@ -251,4 +377,8 @@ export default {
   test,
   assert,
   getRuntime,
+  beforeAll,
+  beforeEach,
+  afterEach,
+  afterAll,
 };

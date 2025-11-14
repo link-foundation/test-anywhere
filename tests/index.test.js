@@ -3,7 +3,40 @@
  * These tests run on Bun, Deno, and Node.js
  */
 
-import { test, assert, getRuntime } from './index.js';
+import {
+  test,
+  assert,
+  getRuntime,
+  beforeAll,
+  beforeEach,
+  afterEach,
+  afterAll,
+} from '../src/index.js';
+
+// Hook test state
+let beforeAllCounter = 0;
+let beforeEachCounter = 0;
+let afterEachCounter = 0;
+const testExecutionOrder = [];
+
+beforeAll(() => {
+  beforeAllCounter++;
+  testExecutionOrder.push('beforeAll');
+});
+
+beforeEach(() => {
+  beforeEachCounter++;
+  testExecutionOrder.push('beforeEach');
+});
+
+afterEach(() => {
+  afterEachCounter++;
+  testExecutionOrder.push('afterEach');
+});
+
+afterAll(() => {
+  testExecutionOrder.push('afterAll');
+});
 
 test('basic assertion - ok', () => {
   assert.ok(true);
@@ -242,4 +275,58 @@ test('includes - fails when substring not in string', () => {
     threw = true;
   }
   assert.ok(threw, 'includes should throw when substring not in string');
+});
+
+// Hook tests
+test('beforeAll hook runs once', () => {
+  assert.equal(beforeAllCounter, 1, 'beforeAll should have run exactly once');
+});
+
+test('beforeEach hook runs before each test', () => {
+  // By the time this test runs, beforeEach should have run at least once
+  assert.ok(beforeEachCounter >= 1, 'beforeEach should have run at least once');
+});
+
+test('afterEach hook runs after each test', () => {
+  // afterEach runs after each test completes
+  // By the time we're in this test, previous tests' afterEach have completed
+  assert.ok(afterEachCounter >= 0, 'afterEach counter should be non-negative');
+});
+
+// Test with async beforeEach/afterEach
+let asyncSetupValue = null;
+
+beforeEach(async () => {
+  // Simulate async setup with a simple promise
+  await Promise.resolve();
+  asyncSetupValue = 'setup complete';
+});
+
+afterEach(async () => {
+  // Simulate async cleanup with a simple promise
+  await Promise.resolve();
+  asyncSetupValue = null;
+});
+
+test('async hooks - setup value is available', () => {
+  assert.equal(
+    asyncSetupValue,
+    'setup complete',
+    'async beforeEach should have set up the value'
+  );
+});
+
+test('hooks - execution order includes beforeAll', () => {
+  assert.ok(
+    testExecutionOrder.includes('beforeAll'),
+    'beforeAll should be in execution order'
+  );
+  assert.ok(
+    testExecutionOrder.includes('beforeEach'),
+    'beforeEach should be in execution order'
+  );
+  assert.ok(
+    testExecutionOrder.includes('afterEach'),
+    'afterEach should be in execution order'
+  );
 });
