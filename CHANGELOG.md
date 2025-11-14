@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.2.7
+
+### Patch Changes
+
+- 5ed0be3: Fix GitHub release notes to include changeset descriptions and npm package links. Release notes will now properly display the changes from CHANGELOG.md along with shields.io badges and direct links to the npm package version.
+
 ## 0.2.6
 
 ### Patch Changes
