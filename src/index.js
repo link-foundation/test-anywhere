@@ -355,6 +355,277 @@ function deepEqual(a, b, seen = new WeakSet()) {
 }
 
 /**
+ * Jest/Bun-style expect() assertion API
+ * Provides chainable matchers for assertions
+ */
+export function expect(actual) {
+  return {
+    // Bun/Jest: expect(x).toBe(y) - strict equality
+    toBe(expected, message) {
+      if (actual !== expected) {
+        const defaultMessage = `Expected ${JSON.stringify(actual)} to be ${JSON.stringify(expected)}`;
+        throw new Error(message || defaultMessage);
+      }
+    },
+
+    // Bun/Jest: expect(x).toEqual(y) - deep equality
+    toEqual(expected, message) {
+      if (!deepEqual(actual, expected)) {
+        const defaultMessage = `Expected ${JSON.stringify(actual)} to equal ${JSON.stringify(expected)}`;
+        throw new Error(message || defaultMessage);
+      }
+    },
+
+    // Bun/Jest: expect(x).not.toBe(y)
+    not: {
+      toBe(expected, message) {
+        if (actual === expected) {
+          const defaultMessage = `Expected ${JSON.stringify(actual)} not to be ${JSON.stringify(expected)}`;
+          throw new Error(message || defaultMessage);
+        }
+      },
+
+      toEqual(expected, message) {
+        if (deepEqual(actual, expected)) {
+          const defaultMessage = `Expected ${JSON.stringify(actual)} not to equal ${JSON.stringify(expected)}`;
+          throw new Error(message || defaultMessage);
+        }
+      },
+
+      toBeNull(message) {
+        if (actual === null) {
+          throw new Error(message || 'Expected value not to be null');
+        }
+      },
+
+      toBeUndefined(message) {
+        if (actual === undefined) {
+          throw new Error(message || 'Expected value not to be undefined');
+        }
+      },
+
+      toBeTruthy(message) {
+        if (actual) {
+          throw new Error(message || 'Expected value not to be truthy');
+        }
+      },
+
+      toBeFalsy(message) {
+        if (!actual) {
+          throw new Error(message || 'Expected value not to be falsy');
+        }
+      },
+
+      toContain(expected, message) {
+        const isIncluded = Array.isArray(actual)
+          ? actual.includes(expected)
+          : typeof actual === 'string'
+            ? actual.includes(expected)
+            : false;
+
+        if (isIncluded) {
+          const defaultMessage = `Expected ${JSON.stringify(actual)} not to contain ${JSON.stringify(expected)}`;
+          throw new Error(message || defaultMessage);
+        }
+      },
+
+      toMatch(regexp, message) {
+        if (regexp.test(actual)) {
+          const defaultMessage = `Expected ${JSON.stringify(actual)} not to match ${regexp}`;
+          throw new Error(message || defaultMessage);
+        }
+      },
+    },
+
+    // Bun/Jest: expect(x).toBeNull()
+    toBeNull(message) {
+      if (actual !== null) {
+        throw new Error(
+          message || `Expected ${JSON.stringify(actual)} to be null`
+        );
+      }
+    },
+
+    // Bun/Jest: expect(x).toBeUndefined()
+    toBeUndefined(message) {
+      if (actual !== undefined) {
+        throw new Error(
+          message || `Expected ${JSON.stringify(actual)} to be undefined`
+        );
+      }
+    },
+
+    // Bun/Jest: expect(x).toBeTruthy()
+    toBeTruthy(message) {
+      if (!actual) {
+        throw new Error(
+          message || `Expected ${JSON.stringify(actual)} to be truthy`
+        );
+      }
+    },
+
+    // Bun/Jest: expect(x).toBeFalsy()
+    toBeFalsy(message) {
+      if (actual) {
+        throw new Error(
+          message || `Expected ${JSON.stringify(actual)} to be falsy`
+        );
+      }
+    },
+
+    // Bun/Jest: expect(arr).toContain(value)
+    toContain(expected, message) {
+      const isIncluded = Array.isArray(actual)
+        ? actual.includes(expected)
+        : typeof actual === 'string'
+          ? actual.includes(expected)
+          : false;
+
+      if (!isIncluded) {
+        const defaultMessage = `Expected ${JSON.stringify(actual)} to contain ${JSON.stringify(expected)}`;
+        throw new Error(message || defaultMessage);
+      }
+    },
+
+    // Bun/Jest: expect(str).toMatch(regexp)
+    toMatch(regexp, message) {
+      if (!regexp.test(actual)) {
+        const defaultMessage = `Expected ${JSON.stringify(actual)} to match ${regexp}`;
+        throw new Error(message || defaultMessage);
+      }
+    },
+
+    // Bun/Jest: expect(fn).toThrow()
+    toThrow(message) {
+      if (typeof actual !== 'function') {
+        throw new Error('Expected value to be a function');
+      }
+
+      let thrown = false;
+      try {
+        const result = actual();
+
+        // Check if result is a promise (async function)
+        if (result && typeof result.then === 'function') {
+          throw new Error(
+            'toThrow() does not support async functions. Use rejects or async/await instead.'
+          );
+        }
+      } catch (error) {
+        // If it's our "async not supported" error, re-throw it
+        if (error.message.includes('does not support async functions')) {
+          throw error;
+        }
+        thrown = true;
+      }
+
+      if (!thrown) {
+        throw new Error(message || 'Expected function to throw');
+      }
+    },
+  };
+}
+
+/**
+ * Deno-style assertions (from @std/assert)
+ * Provides assertEquals, assertNotEquals, etc.
+ */
+export function assertEquals(actual, expected, message) {
+  if (!deepEqual(actual, expected)) {
+    const defaultMessage = `Expected ${JSON.stringify(actual)} to equal ${JSON.stringify(expected)}`;
+    throw new Error(message || defaultMessage);
+  }
+}
+
+export function assertNotEquals(actual, expected, message) {
+  if (deepEqual(actual, expected)) {
+    const defaultMessage = `Expected ${JSON.stringify(actual)} to not equal ${JSON.stringify(expected)}`;
+    throw new Error(message || defaultMessage);
+  }
+}
+
+export function assertStrictEquals(actual, expected, message) {
+  if (actual !== expected) {
+    const defaultMessage = `Expected ${JSON.stringify(actual)} to strictly equal ${JSON.stringify(expected)}`;
+    throw new Error(message || defaultMessage);
+  }
+}
+
+export function assertNotStrictEquals(actual, expected, message) {
+  if (actual === expected) {
+    const defaultMessage = `Expected ${JSON.stringify(actual)} to not strictly equal ${JSON.stringify(expected)}`;
+    throw new Error(message || defaultMessage);
+  }
+}
+
+export function assertExists(actual, message) {
+  if (actual === null || actual === undefined) {
+    throw new Error(
+      message || 'Expected value to exist (not null or undefined)'
+    );
+  }
+}
+
+export function assertMatch(actual, regexp, message) {
+  if (!regexp.test(actual)) {
+    const defaultMessage = `Expected ${JSON.stringify(actual)} to match ${regexp}`;
+    throw new Error(message || defaultMessage);
+  }
+}
+
+export function assertArrayIncludes(actual, expected, message) {
+  if (!Array.isArray(actual)) {
+    throw new Error('Expected actual to be an array');
+  }
+  if (!Array.isArray(expected)) {
+    throw new Error('Expected expected to be an array');
+  }
+
+  for (const item of expected) {
+    const found = actual.some((actualItem) => deepEqual(actualItem, item));
+    if (!found) {
+      const defaultMessage = `Expected ${JSON.stringify(actual)} to include ${JSON.stringify(item)}`;
+      throw new Error(message || defaultMessage);
+    }
+  }
+}
+
+export function assertThrows(fn, message) {
+  let thrown = false;
+  try {
+    const result = fn();
+
+    // Check if result is a promise (async function)
+    if (result && typeof result.then === 'function') {
+      throw new Error(
+        'assertThrows() does not support async functions. Use assertRejects() instead.'
+      );
+    }
+  } catch (error) {
+    // If it's our "async not supported" error, re-throw it
+    if (error.message.includes('does not support async functions')) {
+      throw error;
+    }
+    thrown = true;
+  }
+  if (!thrown) {
+    throw new Error(message || 'Expected function to throw');
+  }
+}
+
+export async function assertRejects(fn, message) {
+  let thrown = false;
+  try {
+    await fn();
+  } catch (_error) {
+    thrown = true;
+  }
+  if (!thrown) {
+    throw new Error(message || 'Expected async function to reject');
+  }
+}
+
+/**
  * Universal assertion helper
  * Works across all runtimes by using simple comparisons
  */
@@ -483,6 +754,16 @@ export default {
   it,
   describe,
   assert,
+  expect,
+  assertEquals,
+  assertNotEquals,
+  assertStrictEquals,
+  assertNotStrictEquals,
+  assertExists,
+  assertMatch,
+  assertArrayIncludes,
+  assertThrows,
+  assertRejects,
   getRuntime,
   beforeAll,
   beforeEach,

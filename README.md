@@ -283,6 +283,149 @@ assert.throws(() => {
 });
 ```
 
+### Multiple Assertion Styles
+
+`test-anywhere` supports three assertion styles to provide maximum compatibility and ease of migration:
+
+#### 1. **Node.js/Classic Style** (`assert.*`)
+
+Traditional Node.js-style assertions (see above sections for details):
+
+```javascript
+import { assert } from 'test-anywhere';
+
+assert.ok(true);
+assert.equal(1, 1);
+assert.deepEqual([1, 2], [1, 2]);
+assert.notEqual(1, 2);
+assert.throws(() => {
+  throw new Error();
+});
+assert.match('hello', /ell/);
+assert.includes([1, 2, 3], 2);
+```
+
+#### 2. **Bun/Jest Style** (`expect()`)
+
+Modern chainable API inspired by Jest and Bun:
+
+```javascript
+import { expect } from 'test-anywhere';
+
+expect(value).toBe(expected); // Strict equality (===)
+expect(value).toEqual(expected); // Deep equality
+expect(value).not.toBe(expected); // Negation
+expect(value).toBeNull(); // null check
+expect(value).toBeUndefined(); // undefined check
+expect(value).toBeTruthy(); // Truthy check
+expect(value).toBeFalsy(); // Falsy check
+expect(array).toContain(item); // Array/string contains
+expect(string).toMatch(/pattern/); // Regex match
+expect(fn).toThrow(); // Function throws
+```
+
+**Complete Example:**
+
+```javascript
+import { describe, it, expect } from 'test-anywhere';
+
+describe('Calculator', () => {
+  it('should add numbers', () => {
+    expect(2 + 2).toBe(4);
+    expect(2 + 2).toEqual(4);
+  });
+
+  it('should handle arrays', () => {
+    expect([1, 2, 3]).toContain(2);
+    expect([1, 2, 3]).toEqual([1, 2, 3]);
+  });
+
+  it('should validate strings', () => {
+    expect('hello world').toMatch(/world/);
+    expect('hello').not.toBe('goodbye');
+  });
+});
+```
+
+#### 3. **Deno Style** (`assertEquals`, etc.)
+
+Deno-inspired assertion functions from `@std/assert`:
+
+```javascript
+import {
+  assertEquals,
+  assertNotEquals,
+  assertStrictEquals,
+  assertExists,
+  assertMatch,
+  assertArrayIncludes,
+  assertThrows,
+  assertRejects,
+} from 'test-anywhere';
+
+assertEquals(actual, expected); // Deep equality
+assertNotEquals(actual, expected); // Not equal
+assertStrictEquals(actual, expected); // Strict equality (===)
+assertNotStrictEquals(actual, expected); // Strict inequality (!==)
+assertExists(value); // Not null/undefined
+assertMatch(string, /pattern/); // Regex match
+assertArrayIncludes(arr, [items]); // Array includes items
+assertThrows(() => {
+  throw new Error();
+}); // Sync throws
+await assertRejects(async () => {
+  throw new Error();
+}); // Async rejects
+```
+
+**Complete Example:**
+
+```javascript
+import {
+  test,
+  assertEquals,
+  assertMatch,
+  assertArrayIncludes,
+} from 'test-anywhere';
+
+test('user validation', () => {
+  const user = { name: 'Alice', email: 'alice@example.com' };
+
+  assertEquals(user.name, 'Alice');
+  assertMatch(user.email, /@/);
+});
+
+test('array operations', () => {
+  const numbers = [1, 2, 3, 4, 5];
+
+  assertArrayIncludes(numbers, [2, 4]);
+  assertEquals(numbers.length, 5);
+});
+```
+
+#### Mix and Match
+
+All three styles can be used together in the same project:
+
+```javascript
+import { describe, it, assert, expect, assertEquals } from 'test-anywhere';
+
+describe('Multi-style assertions', () => {
+  it('supports all styles', () => {
+    const value = 42;
+
+    // Node style
+    assert.equal(value, 42);
+
+    // Bun/Jest style
+    expect(value).toBe(42);
+
+    // Deno style
+    assertEquals(value, 42);
+  });
+});
+```
+
 ### Lifecycle Hooks
 
 Setup and teardown hooks for test initialization and cleanup.

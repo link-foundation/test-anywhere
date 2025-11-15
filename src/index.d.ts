@@ -172,6 +172,132 @@ export function getRuntime(): 'bun' | 'deno' | 'node';
 export const assert: Assert;
 
 /**
+ * Jest/Bun-style expect() interface
+ */
+export interface ExpectMatchers<T> {
+  toBe(expected: T, message?: string): void;
+  toEqual(expected: T, message?: string): void;
+  toBeNull(message?: string): void;
+  toBeUndefined(message?: string): void;
+  toBeTruthy(message?: string): void;
+  toBeFalsy(message?: string): void;
+  toContain(expected: any, message?: string): void;
+  toMatch(regexp: RegExp, message?: string): void;
+  toThrow(message?: string): void;
+  not: {
+    toBe(expected: T, message?: string): void;
+    toEqual(expected: T, message?: string): void;
+    toBeNull(message?: string): void;
+    toBeUndefined(message?: string): void;
+    toBeTruthy(message?: string): void;
+    toBeFalsy(message?: string): void;
+    toContain(expected: any, message?: string): void;
+    toMatch(regexp: RegExp, message?: string): void;
+  };
+}
+
+/**
+ * Jest/Bun-style expect() assertion API
+ * @param actual - The value to test
+ */
+export function expect<T>(actual: T): ExpectMatchers<T>;
+
+/**
+ * Deno-style assertion: assert that two values are equal (deep equality)
+ * @param actual - Actual value
+ * @param expected - Expected value
+ * @param message - Optional error message
+ */
+export function assertEquals<T>(actual: T, expected: T, message?: string): void;
+
+/**
+ * Deno-style assertion: assert that two values are not equal
+ * @param actual - Actual value
+ * @param expected - Expected value
+ * @param message - Optional error message
+ */
+export function assertNotEquals<T>(
+  actual: T,
+  expected: T,
+  message?: string
+): void;
+
+/**
+ * Deno-style assertion: assert strict equality (===)
+ * @param actual - Actual value
+ * @param expected - Expected value
+ * @param message - Optional error message
+ */
+export function assertStrictEquals<T>(
+  actual: T,
+  expected: T,
+  message?: string
+): void;
+
+/**
+ * Deno-style assertion: assert strict inequality (!==)
+ * @param actual - Actual value
+ * @param expected - Expected value
+ * @param message - Optional error message
+ */
+export function assertNotStrictEquals<T>(
+  actual: T,
+  expected: T,
+  message?: string
+): void;
+
+/**
+ * Deno-style assertion: assert value exists (not null or undefined)
+ * @param actual - Value to check
+ * @param message - Optional error message
+ */
+export function assertExists<T>(
+  actual: T | null | undefined,
+  message?: string
+): void;
+
+/**
+ * Deno-style assertion: assert string matches regexp
+ * @param actual - String to test
+ * @param regexp - Regular expression to match
+ * @param message - Optional error message
+ */
+export function assertMatch(
+  actual: string,
+  regexp: RegExp,
+  message?: string
+): void;
+
+/**
+ * Deno-style assertion: assert array includes all expected items
+ * @param actual - Actual array
+ * @param expected - Array of expected items
+ * @param message - Optional error message
+ */
+export function assertArrayIncludes<T>(
+  actual: T[],
+  expected: T[],
+  message?: string
+): void;
+
+/**
+ * Deno-style assertion: assert function throws
+ * @param fn - Function that should throw
+ * @param message - Optional error message
+ */
+export function assertThrows(fn: () => void, message?: string): void;
+
+/**
+ * Deno-style assertion: assert async function rejects
+ * @param fn - Async function that should reject
+ * @param message - Optional error message
+ */
+export function assertRejects(
+  fn: () => Promise<void>,
+  message?: string
+): Promise<void>;
+
+/**
  * Default export containing all exports
  */
 declare const _default: {
@@ -179,6 +305,16 @@ declare const _default: {
   it: TestFunction;
   describe: DescribeFunction;
   assert: Assert;
+  expect: typeof expect;
+  assertEquals: typeof assertEquals;
+  assertNotEquals: typeof assertNotEquals;
+  assertStrictEquals: typeof assertStrictEquals;
+  assertNotStrictEquals: typeof assertNotStrictEquals;
+  assertExists: typeof assertExists;
+  assertMatch: typeof assertMatch;
+  assertArrayIncludes: typeof assertArrayIncludes;
+  assertThrows: typeof assertThrows;
+  assertRejects: typeof assertRejects;
   getRuntime: typeof getRuntime;
   beforeAll: typeof beforeAll;
   beforeEach: typeof beforeEach;
