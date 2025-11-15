@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/test-anywhere.svg)](https://www.npmjs.com/package/test-anywhere)
 [![npm downloads](https://img.shields.io/npm/dm/test-anywhere.svg)](https://www.npmjs.com/package/test-anywhere)
+[![CI/CD](https://github.com/link-foundation/test-anywhere/actions/workflows/main.yml/badge.svg)](https://github.com/link-foundation/test-anywhere/actions/workflows/main.yml)
 [![License](https://img.shields.io/npm/l/test-anywhere.svg)](https://github.com/link-foundation/test-anywhere/blob/main/LICENSE)
 
 A universal JavaScript testing framework that works seamlessly across **Bun**, **Deno**, and **Node.js**. Write your tests once and run them anywhere.

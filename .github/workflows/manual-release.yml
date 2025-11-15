@@ -38,38 +38,15 @@ jobs:
 
       - name: Create changeset file
         run: |
-          # Generate a random changeset ID
-          CHANGESET_ID=$(openssl rand -hex 4)
-          CHANGESET_FILE=".changeset/manual-release-${CHANGESET_ID}.md"
-
-          # Get bump type from workflow input
-          BUMP_TYPE="${{ github.event.inputs.bump_type }}"
-
           # Get description from workflow input or use default
-          if [ -n "${{ github.event.inputs.description }}" ]; then
-            DESCRIPTION="${{ github.event.inputs.description }}"
+          DESCRIPTION="${{ github.event.inputs.description }}"
+
+          # Run the create-manual-changeset script
+          if [ -n "$DESCRIPTION" ]; then
+            node scripts/create-manual-changeset.mjs "${{ github.event.inputs.bump_type }}" "$DESCRIPTION"
           else
-            DESCRIPTION="Manual ${BUMP_TYPE} release"
+            node scripts/create-manual-changeset.mjs "${{ github.event.inputs.bump_type }}"
           fi
-
-          # Create the changeset file with single quotes to match Prettier config
-          cat > "$CHANGESET_FILE" <<EOF
-          ---
-          'test-anywhere': ${BUMP_TYPE}
-          ---
-
-          ${DESCRIPTION}
-          EOF
-
-          echo "Created changeset: $CHANGESET_FILE"
-          cat "$CHANGESET_FILE"
-
-      - name: Format changeset with Prettier
-        run: |
-          # Run Prettier on the changeset file to ensure it matches project style
-          npx prettier --write ".changeset/*.md"
-
-          echo "Formatted changeset files"
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
