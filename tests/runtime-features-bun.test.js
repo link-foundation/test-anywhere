@@ -25,10 +25,7 @@ test('Bun: basic test function works', () => {
 // Test Bun test modifiers through our API
 test('Bun: test.skip works', () => {
   assert.ok(typeof test.skip === 'function', 'test.skip is available');
-
-  test.skip('skipped test', () => {
-    throw new Error('This should not run on Bun');
-  });
+  // Note: Cannot call test.skip() inside a test in Bun - it must be at top level
 });
 
 test('Bun: test.only works', () => {
@@ -37,8 +34,7 @@ test('Bun: test.only works', () => {
 
 test('Bun: test.todo works', () => {
   assert.ok(typeof test.todo === 'function', 'test.todo is available');
-
-  test.todo('pending test');
+  // Note: Cannot call test.todo() inside a test in Bun - it must be at top level
 });
 
 // Test describe functionality (Bun has native describe)
@@ -143,17 +139,22 @@ test('Bun: assert.throwsAsync works', async () => {
   }, 'assert.throwsAsync catches async errors');
 });
 
-// Test runtime detection
-test('Bun: runtime detection', () => {
-  // We should be running on Bun
-  const isBun = typeof Bun !== 'undefined';
-  assert.ok(isBun, 'should detect Bun runtime');
-});
+// Test runtime detection - only run on Bun
+if (typeof Bun !== 'undefined') {
+  test('Bun: runtime detection', () => {
+    // We should be running on Bun
+    const isBun = typeof Bun !== 'undefined';
+    assert.ok(isBun, 'should detect Bun runtime');
+  });
 
-// Test that Bun-specific features are available
-test('Bun: bun:test module is available', () => {
-  assert.ok(typeof Bun !== 'undefined', 'Bun global exists');
-});
+  // Test that Bun-specific features are available
+  test('Bun: bun:test module is available', () => {
+    assert.ok(typeof Bun !== 'undefined', 'Bun global exists');
+  });
+} else {
+  test.skip('Bun: runtime detection (skipped - not running on Bun)', () => {});
+  test.skip('Bun: bun:test module is available (skipped - not running on Bun)', () => {});
+}
 
 // Nested describes
 describe('Bun: nested describes', () => {
