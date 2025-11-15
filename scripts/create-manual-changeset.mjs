@@ -12,10 +12,13 @@ import { execSync } from 'child_process';
 try {
   // Get bump type from command line arguments
   const bumpType = process.argv[2];
-  const description = process.argv.slice(3).join(' ') || `Manual ${bumpType} release`;
+  const description =
+    process.argv.slice(3).join(' ') || `Manual ${bumpType} release`;
 
   if (!bumpType || !['major', 'minor', 'patch'].includes(bumpType)) {
-    console.error('Usage: node scripts/create-manual-changeset.mjs <major|minor|patch> [description]');
+    console.error(
+      'Usage: node scripts/create-manual-changeset.mjs <major|minor|patch> [description]'
+    );
     process.exit(1);
   }
 

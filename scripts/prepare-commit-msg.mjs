@@ -17,25 +17,32 @@ if (process.env.CI || process.env.GITHUB_ACTIONS) {
 const commitSource = process.argv[3];
 
 // Check if this is a merge commit, amend, or rebase
-if (commitSource === 'merge' || commitSource === 'squash' || commitSource === 'commit') {
+if (
+  commitSource === 'merge' ||
+  commitSource === 'squash' ||
+  commitSource === 'commit'
+) {
   process.exit(0);
 }
 
 try {
   // Check if there are any changesets (excluding README.md)
   const changesetDir = '.changeset';
-  const changesetFiles = readdirSync(changesetDir)
-    .filter(file => file.endsWith('.md') && file !== 'README.md');
+  const changesetFiles = readdirSync(changesetDir).filter(
+    (file) => file.endsWith('.md') && file !== 'README.md'
+  );
   const changesetCount = changesetFiles.length;
 
   // Check if we're modifying source files, package.json, or tests
   let modifiedSrc;
   try {
-    modifiedSrc = execSync('git diff --cached --name-only', { encoding: 'utf-8' })
+    modifiedSrc = execSync('git diff --cached --name-only', {
+      encoding: 'utf-8',
+    })
       .split('\n')
-      .filter(file => file.match(/^(src\/|package\.json)/))
+      .filter((file) => file.match(/^(src\/|package\.json)/))
       .filter(Boolean);
-  } catch (error) {
+  } catch (_error) {
     // No staged files
     modifiedSrc = [];
   }
@@ -49,40 +56,51 @@ try {
     console.log('but no changeset has been created.');
     console.log('');
     console.log('Modified files:');
-    modifiedSrc.forEach(file => console.log(`  - ${file}`));
+    modifiedSrc.forEach((file) => console.log(`  - ${file}`));
     console.log('');
     console.log('To create a changeset, run:');
     console.log('  npm run changeset');
     console.log('');
-    console.log('If this commit doesn\'t require a changeset (e.g., internal refactoring,');
+    console.log(
+      "If this commit doesn't require a changeset (e.g., internal refactoring,"
+    );
     console.log('test updates, or documentation), you can proceed.');
     console.log('');
-    console.log('To bypass this check permanently, use: git commit --no-verify');
+    console.log(
+      'To bypass this check permanently, use: git commit --no-verify'
+    );
     console.log('');
 
     // Ask for confirmation (only in interactive mode)
     if (process.stdin.isTTY) {
       const rl = createInterface({
         input: process.stdin,
-        output: process.stdout
+        output: process.stdout,
       });
 
-      rl.question('Do you want to continue without a changeset? [y/N] ', (answer) => {
-        rl.close();
+      rl.question(
+        'Do you want to continue without a changeset? [y/N] ',
+        (answer) => {
+          rl.close();
 
-        const response = answer.trim().toLowerCase();
-        if (response === 'y' || response === 'yes') {
-          console.log('Proceeding without changeset...');
-          process.exit(0);
-        } else {
-          console.log('');
-          console.log('Commit aborted. Please create a changeset first with: npm run changeset');
-          process.exit(1);
+          const response = answer.trim().toLowerCase();
+          if (response === 'y' || response === 'yes') {
+            console.log('Proceeding without changeset...');
+            process.exit(0);
+          } else {
+            console.log('');
+            console.log(
+              'Commit aborted. Please create a changeset first with: npm run changeset'
+            );
+            process.exit(1);
+          }
         }
-      });
+      );
     } else {
       // Non-interactive mode - fail by default
-      console.log('Non-interactive mode detected. Please create a changeset first.');
+      console.log(
+        'Non-interactive mode detected. Please create a changeset first.'
+      );
       console.log('Or use --no-verify to skip this check.');
       process.exit(1);
     }
