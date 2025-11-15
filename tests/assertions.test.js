@@ -153,6 +153,110 @@ describe('Bun/Jest-style expect() API', () => {
       expect('test123').not.toMatch(/\d+/);
     });
   });
+
+  it('expect().not.toThrow() works', () => {
+    expect(() => {
+      // Does not throw
+    }).not.toThrow();
+
+    expect(() => 42).not.toThrow();
+
+    assert.throws(() => {
+      expect(() => {
+        throw new Error('test');
+      }).not.toThrow();
+    });
+  });
+
+  it('expect().toBeGreaterThan() works', () => {
+    expect(5).toBeGreaterThan(3);
+    expect(10).toBeGreaterThan(0);
+    expect(-1).toBeGreaterThan(-5);
+
+    assert.throws(() => {
+      expect(3).toBeGreaterThan(5);
+    });
+
+    assert.throws(() => {
+      expect(5).toBeGreaterThan(5);
+    });
+  });
+
+  it('expect().toBeGreaterThanOrEqual() works', () => {
+    expect(5).toBeGreaterThanOrEqual(3);
+    expect(5).toBeGreaterThanOrEqual(5);
+    expect(10).toBeGreaterThanOrEqual(0);
+
+    assert.throws(() => {
+      expect(3).toBeGreaterThanOrEqual(5);
+    });
+  });
+
+  it('expect().toBeLessThan() works', () => {
+    expect(3).toBeLessThan(5);
+    expect(0).toBeLessThan(10);
+    expect(-5).toBeLessThan(-1);
+
+    assert.throws(() => {
+      expect(5).toBeLessThan(3);
+    });
+
+    assert.throws(() => {
+      expect(5).toBeLessThan(5);
+    });
+  });
+
+  it('expect().toBeLessThanOrEqual() works', () => {
+    expect(3).toBeLessThanOrEqual(5);
+    expect(5).toBeLessThanOrEqual(5);
+    expect(0).toBeLessThanOrEqual(10);
+
+    assert.throws(() => {
+      expect(5).toBeLessThanOrEqual(3);
+    });
+  });
+
+  it('expect().not.toBeGreaterThan() works', () => {
+    expect(3).not.toBeGreaterThan(5);
+    expect(5).not.toBeGreaterThan(5);
+
+    assert.throws(() => {
+      expect(5).not.toBeGreaterThan(3);
+    });
+  });
+
+  it('expect().not.toBeGreaterThanOrEqual() works', () => {
+    expect(3).not.toBeGreaterThanOrEqual(5);
+
+    assert.throws(() => {
+      expect(5).not.toBeGreaterThanOrEqual(3);
+    });
+
+    assert.throws(() => {
+      expect(5).not.toBeGreaterThanOrEqual(5);
+    });
+  });
+
+  it('expect().not.toBeLessThan() works', () => {
+    expect(5).not.toBeLessThan(3);
+    expect(5).not.toBeLessThan(5);
+
+    assert.throws(() => {
+      expect(3).not.toBeLessThan(5);
+    });
+  });
+
+  it('expect().not.toBeLessThanOrEqual() works', () => {
+    expect(5).not.toBeLessThanOrEqual(3);
+
+    assert.throws(() => {
+      expect(3).not.toBeLessThanOrEqual(5);
+    });
+
+    assert.throws(() => {
+      expect(5).not.toBeLessThanOrEqual(5);
+    });
+  });
 });
 
 describe('Deno-style assertion API', () => {

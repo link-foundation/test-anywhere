@@ -49,8 +49,13 @@
   },
   "lint-staged": {
     "*.{js,mjs,cjs}": [
-      "eslint --fix",
-      "prettier --write"
+      "eslint --fix --max-warnings 0",
+      "prettier --write",
+      "prettier --check"
+    ],
+    "*.md": [
+      "prettier --write",
+      "prettier --check"
     ]
   }
 }

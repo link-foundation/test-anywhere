@@ -435,6 +435,62 @@ export function expect(actual) {
           throw new Error(message || defaultMessage);
         }
       },
+
+      toThrow(message) {
+        if (typeof actual !== 'function') {
+          throw new Error('Expected value to be a function');
+        }
+
+        let thrown = false;
+        try {
+          const result = actual();
+
+          // Check if result is a promise (async function)
+          if (result && typeof result.then === 'function') {
+            throw new Error(
+              'toThrow() does not support async functions. Use rejects or async/await instead.'
+            );
+          }
+        } catch (error) {
+          // If it's our "async not supported" error, re-throw it
+          if (error.message.includes('does not support async functions')) {
+            throw error;
+          }
+          thrown = true;
+        }
+
+        if (thrown) {
+          throw new Error(message || 'Expected function not to throw');
+        }
+      },
+
+      toBeGreaterThan(expected, message) {
+        if (actual > expected) {
+          const defaultMessage = `Expected ${JSON.stringify(actual)} not to be greater than ${JSON.stringify(expected)}`;
+          throw new Error(message || defaultMessage);
+        }
+      },
+
+      toBeGreaterThanOrEqual(expected, message) {
+        if (actual >= expected) {
+          const defaultMessage = `Expected ${JSON.stringify(actual)} not to be greater than or equal to ${JSON.stringify(expected)}`;
+          throw new Error(message || defaultMessage);
+        }
+      },
+
+      toBeLessThan(expected, message) {
+        if (actual < expected) {
+          const defaultMessage = `Expected ${JSON.stringify(actual)} not to be less than ${JSON.stringify(expected)}`;
+          throw new Error(message || defaultMessage);
+        }
+      },
+
+      toBeLessThanOrEqual(expected, message) {
+        if (actual <= expected) {
+          const defaultMessage = `Expected ${JSON.stringify(actual)} not to be less than or equal to ${JSON.stringify(expected)}`;
+          throw new Error(message || defaultMessage);
+        }
+      },
     },
 
     // Bun/Jest: expect(x).toBeNull()
@@ -521,6 +577,38 @@ export function expect(actual) {
 
       if (!thrown) {
         throw new Error(message || 'Expected function to throw');
+      }
+    },
+
+    // Bun/Jest: expect(x).toBeGreaterThan(y)
+    toBeGreaterThan(expected, message) {
+      if (!(actual > expected)) {
+        const defaultMessage = `Expected ${JSON.stringify(actual)} to be greater than ${JSON.stringify(expected)}`;
+        throw new Error(message || defaultMessage);
+      }
+    },
+
+    // Bun/Jest: expect(x).toBeGreaterThanOrEqual(y)
+    toBeGreaterThanOrEqual(expected, message) {
+      if (!(actual >= expected)) {
+        const defaultMessage = `Expected ${JSON.stringify(actual)} to be greater than or equal to ${JSON.stringify(expected)}`;
+        throw new Error(message || defaultMessage);
+      }
+    },
+
+    // Bun/Jest: expect(x).toBeLessThan(y)
+    toBeLessThan(expected, message) {
+      if (!(actual < expected)) {
+        const defaultMessage = `Expected ${JSON.stringify(actual)} to be less than ${JSON.stringify(expected)}`;
+        throw new Error(message || defaultMessage);
+      }
+    },
+
+    // Bun/Jest: expect(x).toBeLessThanOrEqual(y)
+    toBeLessThanOrEqual(expected, message) {
+      if (!(actual <= expected)) {
+        const defaultMessage = `Expected ${JSON.stringify(actual)} to be less than or equal to ${JSON.stringify(expected)}`;
+        throw new Error(message || defaultMessage);
       }
     },
   };
