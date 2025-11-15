@@ -1,5 +1,5 @@
 ---
-"test-anywhere": minor
+'test-anywhere': minor
 ---
 
 Add missing comparison matchers and fix toThrow negation
