@@ -8,10 +8,7 @@ import { describe, it, assert } from '../src/index.js';
 describe('it() modifiers', () => {
   it('it.skip should prevent test execution', () => {
     assert.ok(typeof it.skip === 'function', 'it.skip should exist');
-
-    it.skip('this it() test should be skipped', () => {
-      throw new Error('This should not run');
-    });
+    // Note: Cannot call it.skip() inside a test in Bun - must be at top level
   });
 
   it('it.only should isolate test execution', () => {
@@ -21,42 +18,26 @@ describe('it() modifiers', () => {
 
   it('it.todo should mark tests as pending', () => {
     assert.ok(typeof it.todo === 'function', 'it.todo should exist');
-
-    it.todo('implement feature X');
+    // Note: Cannot call it.todo() inside a test in Bun - must be at top level
   });
 
-  it('it.skip works with function body', () => {
-    it.skip('skipped with body', () => {
-      throw new Error('Should not execute');
-    });
-    assert.ok(true);
-  });
-
-  it('it.skip works without function body', () => {
-    it.skip('skipped without body');
-    assert.ok(true);
-  });
-
-  it('it.todo works without function body', () => {
-    it.todo('todo without body');
-    assert.ok(true);
-  });
-
-  it('it.todo works with function body', () => {
-    it.todo('todo with body', () => {
-      // Not implemented yet
-    });
-    assert.ok(true);
+  it('it modifiers are all available', () => {
+    assert.ok(typeof it.skip === 'function', 'it.skip is a function');
+    assert.ok(typeof it.only === 'function', 'it.only is a function');
+    assert.ok(typeof it.todo === 'function', 'it.todo is a function');
+    // Note: Cannot call modifiers inside a test in Bun - must be at top level
+    // Actual usage is tested at top level in this file and skip-isolation.test.js
   });
 });
 
-// Test in nested describes
+// Test in nested describes - these are at top level so they work in Bun
 describe('nested describe with it modifiers', () => {
   describe('inner suite', () => {
     it('regular it() test', () => {
       assert.ok(true);
     });
 
+    // These are at top level (not inside a test) so they work in Bun
     it.skip('skipped nested it()', () => {
       throw new Error('Should not run');
     });
