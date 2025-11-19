@@ -71,7 +71,3 @@ jobs:
             2. Merge this PR to main
             3. The automated release workflow will create a version PR
             4. Merge the version PR to publish to NPM and create a GitHub release
-
-            ---
-
-            🤖 Generated with [Claude Code](https://claude.com/claude-code)
