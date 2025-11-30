@@ -17,12 +17,11 @@ on:
         type: string
 
 jobs:
-  create-changeset:
-    name: Create Changeset
+  create-and-commit-changeset:
+    name: Create and Commit Changeset
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,26 +47,42 @@ jobs:
             node scripts/create-manual-changeset.mjs "${{ github.event.inputs.bump_type }}"
           fi
 
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore: add changeset for manual ${{ github.event.inputs.bump_type }} release'
-          branch: changeset-manual-release-${{ github.run_id }}
-          delete-branch: true
-          title: 'chore: manual ${{ github.event.inputs.bump_type }} release'
-          body: |
-            ## Manual Release Request
+      - name: Commit changeset directly to main
+        run: |
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-            This PR was created by a manual workflow trigger to prepare a **${{ github.event.inputs.bump_type }}** release.
+          # Check if there are changes to commit
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "Changes detected, committing changeset..."
 
-            ### Release Details
-            - **Type:** ${{ github.event.inputs.bump_type }}
-            - **Description:** ${{ github.event.inputs.description || 'Manual release' }}
-            - **Triggered by:** @${{ github.actor }}
+            # Stage the changeset file
+            git add .changeset/
 
-            ### Next Steps
-            1. Review the changeset in this PR
-            2. Merge this PR to main
-            3. The automated release workflow will create a version PR
-            4. Merge the version PR to publish to NPM and create a GitHub release
+            # Commit with descriptive message
+            DESCRIPTION="${{ github.event.inputs.description }}"
+            if [ -n "$DESCRIPTION" ]; then
+              git commit -m "chore: add changeset for manual ${{ github.event.inputs.bump_type }} release" \
+                         -m "" \
+                         -m "Description: $DESCRIPTION" \
+                         -m "Triggered by: @${{ github.actor }}"
+            else
+              git commit -m "chore: add changeset for manual ${{ github.event.inputs.bump_type }} release" \
+                         -m "" \
+                         -m "Triggered by: @${{ github.actor }}"
+            fi
+
+            # Push directly to main
+            git push origin main
+
+            echo "✅ Changeset committed and pushed to main"
+            echo "The CI/CD workflow will now automatically:"
+            echo "  1. Run tests"
+            echo "  2. Version the package"
+            echo "  3. Publish to npm"
+            echo "  4. Create a GitHub release"
+          else
+            echo "❌ No changes to commit - changeset file may not have been created"
+            exit 1
+          fi
