@@ -24,6 +24,7 @@ let nativeBeforeEach;
 let nativeAfterEach;
 let nativeBeforeAll;
 let nativeAfterAll;
+let nativeSetDefaultTimeout;
 let bunTest; // Store bunTest module for later use
 let nodeTest; // Store nodeTest module for later use
 
@@ -36,6 +37,7 @@ if (runtime === 'bun') {
   nativeAfterEach = bunTest.afterEach;
   nativeBeforeAll = bunTest.beforeAll;
   nativeAfterAll = bunTest.afterAll;
+  nativeSetDefaultTimeout = bunTest.setDefaultTimeout;
 } else if (runtime === 'deno') {
   // Deno has Deno.test global but no built-in hooks
   // We'll implement hooks manually for Deno
@@ -278,6 +280,28 @@ export const after = afterAll;
  */
 export function getRuntime() {
   return runtime;
+}
+
+/**
+ * Set the default timeout for tests
+ * @param {number} timeout - Timeout in milliseconds
+ */
+export function setDefaultTimeout(timeout) {
+  if (runtime === 'bun') {
+    // For Bun, use the native setDefaultTimeout
+    if (nativeSetDefaultTimeout) {
+      nativeSetDefaultTimeout(timeout);
+    }
+  } else if (runtime === 'node') {
+    // For Node.js, this is not supported natively
+    // Tests can use { timeout } option in individual test() calls
+    console.warn(
+      'setDefaultTimeout is not supported in Node.js runtime. Use { timeout } option in test() calls instead.'
+    );
+  } else if (runtime === 'deno') {
+    // For Deno, this is not supported natively
+    console.warn('setDefaultTimeout is not supported in Deno runtime.');
+  }
 }
 
 /**

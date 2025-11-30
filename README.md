@@ -239,6 +239,37 @@ describe.only('unit tests', () => {
 });
 ```
 
+### Test Configuration
+
+#### `setDefaultTimeout(timeout)`
+
+Set the default timeout for all tests in milliseconds. This is useful when tests need more time to complete (e.g., integration tests, API calls).
+
+**Parameters:**
+
+- `timeout` (number): Timeout in milliseconds
+
+**Example:**
+
+```javascript
+import { test, setDefaultTimeout } from 'test-anywhere';
+
+// Set default timeout to 60 seconds
+setDefaultTimeout(60000);
+
+test('long running operation', async () => {
+  // This test can take up to 60 seconds
+  await someSlowOperation();
+});
+```
+
+**Note:**
+
+- For **Bun**: Uses the native `setDefaultTimeout` from `bun:test`
+- For **Node.js** and **Deno**: Not supported natively. A warning will be logged, and you should use timeout options in individual test calls instead.
+
+### Assertions
+
 ### `assert.ok(value, message?)`
 
 Asserts that a value is truthy.
