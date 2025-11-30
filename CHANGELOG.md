@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.7.1
+
+### Patch Changes
+
+- 852c0bc: Test manual release
+
 ## 0.7.0
 
 ### Minor Changes
