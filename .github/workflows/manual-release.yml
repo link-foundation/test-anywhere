@@ -17,11 +17,14 @@ on:
         type: string
 
 jobs:
-  create-and-commit-changeset:
-    name: Create and Commit Changeset
+  create-changeset-pr:
+    name: Create Changeset PR
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
+    outputs:
+      pr_number: ${{ steps.create-pr.outputs.pull-request-number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,42 +50,50 @@ jobs:
             node scripts/create-manual-changeset.mjs "${{ github.event.inputs.bump_type }}"
           fi
 
-      - name: Commit changeset directly to main
-        run: |
-          # Configure git
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Create Pull Request
+        id: create-pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: add changeset for manual ${{ github.event.inputs.bump_type }} release'
+          branch: changeset-manual-release-${{ github.run_id }}
+          delete-branch: true
+          title: 'chore: manual ${{ github.event.inputs.bump_type }} release'
+          body: |
+            ## Manual Release Request
 
-          # Check if there are changes to commit
-          if [[ -n $(git status --porcelain) ]]; then
-            echo "Changes detected, committing changeset..."
+            This PR was created by a manual workflow trigger to prepare a **${{ github.event.inputs.bump_type }}** release.
 
-            # Stage the changeset file
-            git add .changeset/
+            ### Release Details
+            - **Type:** ${{ github.event.inputs.bump_type }}
+            - **Description:** ${{ github.event.inputs.description || 'Manual release' }}
+            - **Triggered by:** @${{ github.actor }}
 
-            # Commit with descriptive message
-            DESCRIPTION="${{ github.event.inputs.description }}"
-            if [ -n "$DESCRIPTION" ]; then
-              git commit -m "chore: add changeset for manual ${{ github.event.inputs.bump_type }} release" \
-                         -m "" \
-                         -m "Description: $DESCRIPTION" \
-                         -m "Triggered by: @${{ github.actor }}"
-            else
-              git commit -m "chore: add changeset for manual ${{ github.event.inputs.bump_type }} release" \
-                         -m "" \
-                         -m "Triggered by: @${{ github.actor }}"
-            fi
+            ### Automation
+            This PR will be automatically approved and merged once CI checks pass.
+            The release process will then:
+            1. Run tests on all platforms and runtimes
+            2. Version the package based on the changeset
+            3. Publish to npm
+            4. Create a GitHub release
 
-            # Push directly to main
-            git push origin main
+  auto-approve-and-merge:
+    name: Auto-Approve and Enable Auto-Merge
+    runs-on: ubuntu-latest
+    needs: create-changeset-pr
+    if: needs.create-changeset-pr.outputs.pr_number
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Auto-approve PR
+        uses: hmarr/auto-approve-action@v4
+        with:
+          pull-request-number: ${{ needs.create-changeset-pr.outputs.pr_number }}
 
-            echo "✅ Changeset committed and pushed to main"
-            echo "The CI/CD workflow will now automatically:"
-            echo "  1. Run tests"
-            echo "  2. Version the package"
-            echo "  3. Publish to npm"
-            echo "  4. Create a GitHub release"
-          else
-            echo "❌ No changes to commit - changeset file may not have been created"
-            exit 1
-          fi
+      - name: Enable auto-merge
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ needs.create-changeset-pr.outputs.pr_number }}
+          merge-method: squash
