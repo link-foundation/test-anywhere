@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.1
+
+### Patch Changes
+
+- 6934737: Update manual release workflow to commit directly to main instead of creating a PR
+
 ## 0.8.0
 
 ### Minor Changes
