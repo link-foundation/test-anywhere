@@ -70,15 +70,15 @@ jobs:
             - **Triggered by:** @${{ github.actor }}
 
             ### Automation
-            This PR will be automatically approved and merged once CI checks pass.
+            This PR will be automatically merged once CI checks pass.
             The release process will then:
             1. Run tests on all platforms and runtimes
             2. Version the package based on the changeset
             3. Publish to npm
             4. Create a GitHub release
 
-  auto-approve-and-merge:
-    name: Auto-Approve and Enable Auto-Merge
+  enable-auto-merge:
+    name: Enable Auto-Merge
     runs-on: ubuntu-latest
     needs: create-changeset-pr
     if: needs.create-changeset-pr.outputs.pr_number
@@ -86,11 +86,6 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - name: Auto-approve PR
-        uses: hmarr/auto-approve-action@v4
-        with:
-          pull-request-number: ${{ needs.create-changeset-pr.outputs.pr_number }}
-
       - name: Enable auto-merge
         uses: peter-evans/enable-pull-request-automerge@v3
         with:
