@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.3
+
+### Patch Changes
+
+- 0559edd: Simplify manual release workflow to commit directly instead of creating PR
+
 ## 0.8.2
 
 ### Patch Changes
