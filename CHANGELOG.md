@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.2
+
+### Patch Changes
+
+- 520265b: Update manual release workflow to use auto-approve and auto-merge instead of direct commit. This fixes the issue where commits pushed by GitHub Actions did not trigger subsequent workflows.
+
 ## 0.8.1
 
 ### Patch Changes
