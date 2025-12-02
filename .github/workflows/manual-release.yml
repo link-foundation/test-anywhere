@@ -17,14 +17,12 @@ on:
         type: string
 
 jobs:
-  create-changeset-pr:
-    name: Create Changeset PR
+  release:
+    name: Create Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
-    outputs:
-      pr_number: ${{ steps.create-pr.outputs.pull-request-number }}
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,11 +32,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Create changeset file
+      - name: Create changeset
         run: |
           # Get description from workflow input or use default
           DESCRIPTION="${{ github.event.inputs.description }}"
@@ -50,45 +49,109 @@ jobs:
             node scripts/create-manual-changeset.mjs "${{ github.event.inputs.bump_type }}"
           fi
 
-      - name: Create Pull Request
-        id: create-pr
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore: add changeset for manual ${{ github.event.inputs.bump_type }} release'
-          branch: changeset-manual-release-${{ github.run_id }}
-          delete-branch: true
-          title: 'chore: manual ${{ github.event.inputs.bump_type }} release'
-          body: |
-            ## Manual Release Request
+      - name: Version packages
+        id: version
+        run: |
+          # Get current version before bump
+          OLD_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $OLD_VERSION"
 
-            This PR was created by a manual workflow trigger to prepare a **${{ github.event.inputs.bump_type }}** release.
+          # Run changeset version to bump versions and update CHANGELOG
+          npm run changeset:version
 
-            ### Release Details
-            - **Type:** ${{ github.event.inputs.bump_type }}
-            - **Description:** ${{ github.event.inputs.description || 'Manual release' }}
-            - **Triggered by:** @${{ github.actor }}
+          # Get new version after bump
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-            ### Automation
-            This PR will be automatically merged once CI checks pass.
-            The release process will then:
-            1. Run tests on all platforms and runtimes
-            2. Version the package based on the changeset
-            3. Publish to npm
-            4. Create a GitHub release
+      - name: Commit and push to main
+        id: commit
+        run: |
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-  enable-auto-merge:
-    name: Enable Auto-Merge
-    runs-on: ubuntu-latest
-    needs: create-changeset-pr
-    if: needs.create-changeset-pr.outputs.pr_number
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - name: Enable auto-merge
-        uses: peter-evans/enable-pull-request-automerge@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ needs.create-changeset-pr.outputs.pr_number }}
-          merge-method: squash
+          NEW_VERSION="${{ steps.version.outputs.new_version }}"
+
+          # Check if there are changes to commit
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "Changes detected, committing..."
+
+            # Stage all changes
+            git add -A
+
+            # Commit with version number as message
+            git commit -m "$NEW_VERSION" \
+                       -m "" \
+                       -m "Manual ${{ github.event.inputs.bump_type }} release"
+
+            # Push directly to main
+            git push origin main
+
+            echo "version_committed=true" >> $GITHUB_OUTPUT
+            echo "✅ Version bump committed and pushed to main"
+          else
+            echo "No changes to commit"
+            echo "version_committed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to npm
+        if: steps.commit.outputs.version_committed == 'true'
+        id: publish
+        run: |
+          # Publish to npm
+          npm run changeset:publish
+
+          echo "published=true" >> $GITHUB_OUTPUT
+
+          # Get published version
+          PUBLISHED_VERSION=$(node -p "require('./package.json').version")
+          echo "published_version=$PUBLISHED_VERSION" >> $GITHUB_OUTPUT
+          echo "✅ Published test-anywhere@$PUBLISHED_VERSION to npm"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        if: steps.publish.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.publish.outputs.published_version }}"
+          TAG="v$VERSION"
+
+          echo "Creating GitHub release for $TAG..."
+
+          # Extract changelog entry for this version
+          RELEASE_NOTES=$(awk "/## $VERSION/{flag=1; next} /## [0-9]/{flag=0} flag" CHANGELOG.md)
+
+          if [ -z "$RELEASE_NOTES" ]; then
+            RELEASE_NOTES="Release $VERSION"
+          fi
+
+          # Create release
+          gh release create "$TAG" \
+            --title "$VERSION" \
+            --notes "$RELEASE_NOTES" \
+            --repo ${{ github.repository }}
+
+          echo "✅ Created GitHub release: $TAG"
+
+      - name: Format GitHub release notes
+        if: steps.publish.outputs.published == 'true'
+        run: |
+          VERSION="${{ steps.publish.outputs.published_version }}"
+          TAG="v$VERSION"
+
+          # Get the release ID for this version
+          RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/$TAG --jq '.id' 2>/dev/null || echo "")
+
+          if [ -n "$RELEASE_ID" ]; then
+            echo "Formatting release notes for $TAG..."
+            node scripts/format-release-notes.mjs "$RELEASE_ID" "$TAG" "${{ github.repository }}"
+            echo "✅ Formatted release notes for $TAG"
+          else
+            echo "⚠️ Could not find release for $TAG"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
