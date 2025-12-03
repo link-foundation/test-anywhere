@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.5
+
+### Patch Changes
+
+- 30dbc10: Add Release mode selector with Instant and Changeset PR options
+
 ## 0.8.4
 
 ### Patch Changes
