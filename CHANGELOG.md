@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.6
+
+### Patch Changes
+
+- 42f15d5: Test patch release
+
 ## 0.8.5
 
 ### Patch Changes
