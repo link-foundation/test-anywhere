@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.8
+
+### Patch Changes
+
+- Test patch release
+
 ## 0.8.7
 
 ### Patch Changes
