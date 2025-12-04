@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.7
+
+### Patch Changes
+
+- ca28b91: Test patch release
+
 ## 0.8.6
 
 ### Patch Changes
