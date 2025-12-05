@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.10
+
+### Patch Changes
+
+- 883b7d0: Fix GITHUB_TOKEN collision error in reusable workflows
+
 ## 0.8.9
 
 ### Patch Changes
