@@ -80,7 +80,6 @@ jobs:
       commit-message-suffix: 'Manual ${{ github.event.inputs.bump_type }} release'
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Changeset PR - creates a pull request with the changeset for review
   changeset-pr:
