@@ -38,17 +38,29 @@ try {
   }
 
   // Extract the patch changes section
-  // This regex captures the commit hash and everything after the colon until we hit double newline or end
-  const patchChangesMatch = currentBody.match(
+  // This regex handles two formats:
+  // 1. With commit hash: "- abc1234: Description"
+  // 2. Without commit hash: "- Description"
+  const patchChangesMatchWithHash = currentBody.match(
     /### Patch Changes\s*\n\s*-\s+([a-f0-9]+):\s+(.+?)$/s
   );
+  const patchChangesMatchNoHash = currentBody.match(
+    /### Patch Changes\s*\n\s*-\s+(.+?)$/s
+  );
 
-  if (!patchChangesMatch) {
+  let commitHash = null;
+  let rawDescription = null;
+
+  if (patchChangesMatchWithHash) {
+    // Format: - abc1234: Description
+    [, commitHash, rawDescription] = patchChangesMatchWithHash;
+  } else if (patchChangesMatchNoHash) {
+    // Format: - Description (no commit hash)
+    [, rawDescription] = patchChangesMatchNoHash;
+  } else {
     console.log('⚠️ Could not parse patch changes from release notes');
     process.exit(0);
   }
-
-  const [, commitHash, rawDescription] = patchChangesMatch;
 
   // Clean up the description:
   // 1. Remove literal \n sequences (escaped newlines from GitHub API)
@@ -61,29 +73,62 @@ try {
     .trim()
     .replace(/\s+/g, ' '); // Normalize all whitespace to single spaces
 
-  // Find the PR that contains this commit
+  // Find the PR that contains this commit (if we have a commit hash)
   let prNumber = null;
 
-  try {
-    const prsData = JSON.parse(
-      execSync(`gh api "repos/${repository}/commits/${commitHash}/pulls"`, {
-        encoding: 'utf8',
-      })
-    );
+  if (commitHash) {
+    try {
+      const prsData = JSON.parse(
+        execSync(`gh api "repos/${repository}/commits/${commitHash}/pulls"`, {
+          encoding: 'utf8',
+        })
+      );
 
-    // Find the PR that's not the version bump PR (not "chore: version packages")
-    const relevantPr = prsData.find(
-      (pr) => !pr.title.includes('version packages')
-    );
+      // Find the PR that's not the version bump PR (not "chore: version packages")
+      const relevantPr = prsData.find(
+        (pr) => !pr.title.includes('version packages')
+      );
 
-    if (relevantPr) {
-      prNumber = relevantPr.number;
+      if (relevantPr) {
+        prNumber = relevantPr.number;
+      }
+    } catch (error) {
+      console.log('⚠️ Could not find PR for commit', commitHash);
+      console.log('   Error:', error.message);
+      if (process.env.DEBUG) {
+        console.error(error);
+      }
     }
-  } catch (error) {
-    console.log('⚠️ Could not find PR for commit', commitHash);
-    console.log('   Error:', error.message);
-    if (process.env.DEBUG) {
-      console.error(error);
+  } else {
+    // No commit hash - likely from instant release mode
+    // Try to find the most recent merged PR related to a manual release
+    try {
+      const prsData = JSON.parse(
+        execSync(
+          `gh api "repos/${repository}/pulls?state=closed&sort=updated&direction=desc&per_page=10"`,
+          {
+            encoding: 'utf8',
+          }
+        )
+      );
+
+      // Find the most recent merged PR that's a manual release changeset
+      const relevantPr = prsData.find(
+        (pr) =>
+          pr.merged_at &&
+          (pr.title.includes('manual') || pr.title.includes('changeset')) &&
+          !pr.title.includes('version packages')
+      );
+
+      if (relevantPr) {
+        prNumber = relevantPr.number;
+      }
+    } catch (error) {
+      console.log('⚠️ Could not find related PR (no commit hash available)');
+      console.log('   Error:', error.message);
+      if (process.env.DEBUG) {
+        console.error(error);
+      }
     }
   }
 
