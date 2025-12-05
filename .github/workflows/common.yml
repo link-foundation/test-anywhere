@@ -18,6 +18,21 @@ on:
         required: false
         type: string
         default: ''
+      release_mode:
+        description: 'Release mode (instant or changeset)'
+        required: false
+        type: string
+        default: 'changeset'
+      bump_type:
+        description: 'Version bump type for instant releases (patch, minor, major)'
+        required: false
+        type: string
+        default: 'patch'
+      description:
+        description: 'Release description for instant releases'
+        required: false
+        type: string
+        default: ''
     outputs:
       published:
         description: 'Whether a package was published'
@@ -75,8 +90,20 @@ jobs:
           OLD_VERSION=$(node -p "require('./package.json').version")
           echo "Current version: $OLD_VERSION"
 
-          # Run changeset version to bump versions and update CHANGELOG
-          npm run changeset:version
+          # Branch based on release mode
+          if [ "${{ inputs.release_mode }}" == "instant" ]; then
+            echo "Running instant version bump..."
+            # Run instant version bump script
+            if [ -n "${{ inputs.description }}" ]; then
+              node scripts/instant-version-bump.mjs "${{ inputs.bump_type }}" "${{ inputs.description }}"
+            else
+              node scripts/instant-version-bump.mjs "${{ inputs.bump_type }}"
+            fi
+          else
+            echo "Running changeset version..."
+            # Run changeset version to bump versions and update CHANGELOG
+            npm run changeset:version
+          fi
 
           # Get new version after bump
           NEW_VERSION=$(node -p "require('./package.json').version")
