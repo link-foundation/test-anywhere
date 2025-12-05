@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.9
+
+### Patch Changes
+
+- 9ba1a4e: Ensure consistent release note style for both instant and changeset-pr modes
+
 ## 0.8.8
 
 ### Patch Changes
