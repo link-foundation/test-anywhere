@@ -29,6 +29,13 @@ jobs:
   instant-release:
     name: Instant Release
     if: github.event.inputs.release_mode == 'instant'
+    # Permissions required for npm OIDC trusted publishing
+    # Note: These must be in the caller workflow, not just the reusable workflow
+    # npm validates the entry point workflow file specified in trusted publisher settings
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
     uses: ./.github/workflows/common.yml
     with:
       node-version: '20.x'
