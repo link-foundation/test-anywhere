@@ -40,9 +40,6 @@ on:
       published_version:
         description: 'The version that was published'
         value: ${{ jobs.release.outputs.published_version }}
-    secrets:
-      NPM_TOKEN:
-        required: false
 
 jobs:
   release:

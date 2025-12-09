@@ -217,9 +217,7 @@ jobs:
 
       - name: Publish to npm
         run: npm run changeset:publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # Uses OIDC trusted publishing - no token needed
 
       - name: Create GitHub Release
         env:
