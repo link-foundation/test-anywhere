@@ -40,9 +40,6 @@ on:
       published_version:
         description: 'The version that was published'
         value: ${{ jobs.release.outputs.published_version }}
-    secrets:
-      NPM_TOKEN:
-        required: true
 
 jobs:
   release:
@@ -147,7 +144,7 @@ jobs:
             git pull origin main
           fi
 
-          # Publish to npm
+          # Publish to npm using OIDC trusted publishing
           npm run changeset:publish
 
           echo "published=true" >> $GITHUB_OUTPUT
@@ -156,9 +153,6 @@ jobs:
           PUBLISHED_VERSION=$(node -p "require('./package.json').version")
           echo "published_version=$PUBLISHED_VERSION" >> $GITHUB_OUTPUT
           echo "✅ Published test-anywhere@$PUBLISHED_VERSION to npm"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
         if: steps.publish.outputs.published == 'true'
