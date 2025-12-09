@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.16
+
+### Patch Changes
+
+- 83bd342: Migrate from NPM_TOKEN to OIDC trusted publishing for npm package releases. This change removes all NPM_TOKEN secret dependencies from GitHub Actions workflows and enables npm's recommended OIDC-based authentication for enhanced security and automatic provenance generation.
+
 ## 0.8.15
 
 ### Patch Changes
