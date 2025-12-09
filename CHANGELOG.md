@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.17
+
+### Patch Changes
+
+- d7abfad: Fix npm trusted publishing by adding OIDC permissions to caller workflows
+
 ## 0.8.16
 
 ### Patch Changes
