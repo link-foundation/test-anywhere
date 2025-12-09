@@ -120,6 +120,13 @@ jobs:
     # Use always() to ensure this job runs even if changeset-check was skipped
     # This is needed because lint/test jobs have a transitive dependency on changeset-check
     if: always() && github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.lint.result == 'success' && needs.test.result == 'success'
+    # Permissions required for npm OIDC trusted publishing
+    # Note: These must be in the caller workflow (main.yml), not just the reusable workflow
+    # npm validates the entry point workflow file specified in trusted publisher settings
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
     uses: ./.github/workflows/common.yml
     with:
       node-version: '20.x'
