@@ -124,5 +124,3 @@ jobs:
     with:
       node-version: '20.x'
       skip-changeset-check: false
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

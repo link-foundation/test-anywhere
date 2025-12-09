@@ -37,8 +37,6 @@ jobs:
       release_mode: 'instant'
       bump_type: ${{ github.event.inputs.bump_type }}
       description: ${{ github.event.inputs.description }}
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   # Changeset PR - creates a pull request with the changeset for review
   changeset-pr:
