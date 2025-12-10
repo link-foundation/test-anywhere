@@ -270,16 +270,7 @@ jobs:
         run: npm install
 
       - name: Create changeset file
-        run: |
-          # Get description from workflow input or use default
-          DESCRIPTION="${{ github.event.inputs.description }}"
-
-          # Run the create-manual-changeset script
-          if [ -n "$DESCRIPTION" ]; then
-            node scripts/create-manual-changeset.mjs "${{ github.event.inputs.bump_type }}" "$DESCRIPTION"
-          else
-            node scripts/create-manual-changeset.mjs "${{ github.event.inputs.bump_type }}"
-          fi
+        run: node scripts/create-manual-changeset.mjs "${{ github.event.inputs.bump_type }}" "${{ github.event.inputs.description }}"
 
       - name: Format changeset with Prettier
         run: |
