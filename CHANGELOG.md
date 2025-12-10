@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.21
+
+### Patch Changes
+
+- 772779f: Test patch release
+
 ## 0.8.20
 
 ### Patch Changes
