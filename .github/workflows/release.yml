@@ -8,11 +8,11 @@ on:
     types: [opened, synchronize, reopened]
   # Manual release support - consolidated here to work with npm trusted publishing
   # npm only allows ONE workflow file as trusted publisher, so all publishing
-  # must go through this workflow (main.yml)
+  # must go through this workflow (release.yml)
   workflow_dispatch:
     inputs:
       release_mode:
-        description: 'Release mode'
+        description: 'Manual release mode'
         required: true
         type: choice
         default: 'instant'
@@ -20,7 +20,7 @@ on:
           - instant
           - changeset-pr
       bump_type:
-        description: 'Release type'
+        description: 'Manual release type'
         required: true
         type: choice
         options:
@@ -28,7 +28,7 @@ on:
           - minor
           - major
       description:
-        description: 'Release description (optional)'
+        description: 'Manual release description (optional)'
         required: false
         type: string
 
@@ -145,37 +145,108 @@ jobs:
     # Use always() to ensure this job runs even if changeset-check was skipped
     # This is needed because lint/test jobs have a transitive dependency on changeset-check
     if: always() && github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.lint.result == 'success' && needs.test.result == 'success'
+    runs-on: ubuntu-latest
     # Permissions required for npm OIDC trusted publishing
-    # Note: These must be in the caller workflow (main.yml), not just the reusable workflow
-    # npm validates the entry point workflow file specified in trusted publisher settings
     permissions:
       contents: write
       pull-requests: write
       id-token: write
-    uses: ./.github/workflows/common.yml
-    with:
-      node-version: '20.x'
-      skip-changeset-check: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Update npm for OIDC trusted publishing
+        run: ./scripts/setup-npm.sh
+
+      - name: Check for changesets
+        id: check_changesets
+        run: |
+          # Count changeset files (excluding README.md and config.json)
+          CHANGESET_COUNT=$(find .changeset -name "*.md" ! -name "README.md" | wc -l)
+          echo "Found $CHANGESET_COUNT changeset file(s)"
+          echo "has_changesets=$([[ $CHANGESET_COUNT -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
+      - name: Version packages and commit to main
+        if: steps.check_changesets.outputs.has_changesets == 'true'
+        id: version
+        run: ./scripts/version-and-commit.sh changeset
+
+      - name: Publish to npm
+        if: steps.version.outputs.version_committed == 'true'
+        id: publish
+        run: ./scripts/publish-to-npm.sh true
+
+      - name: Create GitHub Release
+        if: steps.publish.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./scripts/create-github-release.sh "${{ steps.publish.outputs.published_version }}" "${{ github.repository }}"
+
+      - name: Format GitHub release notes
+        if: steps.publish.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./scripts/format-github-release.sh "${{ steps.publish.outputs.published_version }}" "${{ github.repository }}" "${{ github.sha }}"
 
   # Manual Instant Release - triggered via workflow_dispatch with instant mode
-  # This job is in main.yml (not manual-release.yml) because npm trusted publishing
+  # This job is in release.yml because npm trusted publishing
   # only allows one workflow file to be registered as a trusted publisher
   instant-release:
     name: Instant Release
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_mode == 'instant'
+    runs-on: ubuntu-latest
     # Permissions required for npm OIDC trusted publishing
     permissions:
       contents: write
       pull-requests: write
       id-token: write
-    uses: ./.github/workflows/common.yml
-    with:
-      node-version: '20.x'
-      skip-changeset-check: true
-      commit-message-suffix: 'Manual ${{ github.event.inputs.bump_type }} release'
-      release_mode: 'instant'
-      bump_type: ${{ github.event.inputs.bump_type }}
-      description: ${{ github.event.inputs.description }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Update npm for OIDC trusted publishing
+        run: ./scripts/setup-npm.sh
+
+      - name: Version packages and commit to main
+        id: version
+        run: ./scripts/version-and-commit.sh instant "${{ github.event.inputs.bump_type }}" "${{ github.event.inputs.description }}"
+
+      - name: Publish to npm
+        if: steps.version.outputs.version_committed == 'true'
+        id: publish
+        run: ./scripts/publish-to-npm.sh false
+
+      - name: Create GitHub Release
+        if: steps.publish.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./scripts/create-github-release.sh "${{ steps.publish.outputs.published_version }}" "${{ github.repository }}"
+
+      - name: Format GitHub release notes
+        if: steps.publish.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./scripts/format-github-release.sh "${{ steps.publish.outputs.published_version }}" "${{ github.repository }}" "${{ github.sha }}"
 
   # Manual Changeset PR - creates a pull request with the changeset for review
   changeset-pr:
@@ -199,16 +270,7 @@ jobs:
         run: npm install
 
       - name: Create changeset file
-        run: |
-          # Get description from workflow input or use default
-          DESCRIPTION="${{ github.event.inputs.description }}"
-
-          # Run the create-manual-changeset script
-          if [ -n "$DESCRIPTION" ]; then
-            node scripts/create-manual-changeset.mjs "${{ github.event.inputs.bump_type }}" "$DESCRIPTION"
-          else
-            node scripts/create-manual-changeset.mjs "${{ github.event.inputs.bump_type }}"
-          fi
+        run: node scripts/create-manual-changeset.mjs "${{ github.event.inputs.bump_type }}" "${{ github.event.inputs.description }}"
 
       - name: Format changeset with Prettier
         run: |

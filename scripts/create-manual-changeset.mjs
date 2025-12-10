@@ -10,10 +10,12 @@ import { randomBytes } from 'crypto';
 import { execSync } from 'child_process';
 
 try {
-  // Get bump type from command line arguments
+  // Get bump type and description from command line arguments
   const bumpType = process.argv[2];
-  const description =
-    process.argv.slice(3).join(' ') || `Manual ${bumpType} release`;
+  const descriptionArg = process.argv.slice(3).join(' ');
+
+  // Use provided description or default based on bump type
+  const description = descriptionArg || `Manual ${bumpType} release`;
 
   if (!bumpType || !['major', 'minor', 'patch'].includes(bumpType)) {
     console.error(
