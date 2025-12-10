@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.28
+
+### Patch Changes
+
+- 2ea4945: Refactor GitHub Actions workflows: renamed main.yml to release.yml and consolidated common.yml into the main workflow file
+
 ## 0.8.27
 
 ### Patch Changes
