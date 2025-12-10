@@ -24,7 +24,7 @@ The workflow requires **two separate configurations** to function properly:
 
 ### 1. Workflow Permissions ✅ (Already Configured)
 
-The workflow file `.github/workflows/manual-release.yml` already includes:
+The workflow files already include:
 
 ```yaml
 permissions:
@@ -123,7 +123,7 @@ Once the repository setting is enabled:
 
 ### Still Getting 403 Errors?
 
-1. **Verify workflow permissions** in `.github/workflows/manual-release.yml`:
+1. **Verify workflow permissions** in workflow files:
 
    ```yaml
    jobs:

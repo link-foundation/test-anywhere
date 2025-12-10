@@ -1,10 +1,10 @@
-# DEPRECATED: This workflow has been consolidated into main.yml
+# DEPRECATED: This workflow has been consolidated into release.yml
 #
 # npm trusted publishing only allows ONE workflow file to be registered as a
-# trusted publisher. Since our npm settings are configured for main.yml,
+# trusted publisher. Since our npm settings are configured for release.yml,
 # all publishing must go through that workflow.
 #
-# Please use the CI/CD workflow (main.yml) instead:
+# Please use the CI/CD workflow (release.yml) instead:
 # 1. Go to Actions tab
 # 2. Select "CI/CD" workflow
 # 3. Click "Run workflow"
@@ -48,8 +48,8 @@ jobs:
       - name: Show deprecation warning
         run: |
           echo "::warning::This workflow is DEPRECATED and will not publish successfully."
-          echo "::warning::npm trusted publishing only allows one workflow file (main.yml) as trusted publisher."
-          echo "::warning::Please use the CI/CD workflow (main.yml) instead:"
+          echo "::warning::npm trusted publishing only allows one workflow file (release.yml) as trusted publisher."
+          echo "::warning::Please use the CI/CD workflow (release.yml) instead:"
           echo "::warning::1. Go to Actions tab"
           echo "::warning::2. Select 'CI/CD' workflow"
           echo "::warning::3. Click 'Run workflow'"
@@ -67,7 +67,7 @@ jobs:
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'main.yml',
+              workflow_id: 'release.yml',
               ref: 'main',
               inputs: {
                 release_mode: '${{ github.event.inputs.release_mode }}',
