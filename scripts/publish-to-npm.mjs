@@ -2,14 +2,37 @@
 
 /**
  * Publish to npm using OIDC trusted publishing
- * Usage: node scripts/publish-to-npm.mjs [should_pull]
+ * Usage: node scripts/publish-to-npm.mjs [--should-pull]
  *   should_pull: Optional flag to pull latest changes before publishing (for release job)
+ *
+ * Uses link-foundation libraries:
+ * - use-m: Dynamic package loading without package.json dependencies
+ * - command-stream: Modern shell command execution with streaming support
+ * - lino-arguments: Unified configuration from CLI args, env vars, and .lenv files
  */
 
-import { execSync } from 'child_process';
 import { readFileSync, appendFileSync } from 'fs';
 
-const shouldPull = process.argv[2] === 'true';
+// Load use-m dynamically
+const { use } = eval(
+  await (await fetch('https://unpkg.com/use-m/use.js')).text()
+);
+
+// Import link-foundation libraries
+const { $ } = await use('command-stream');
+const { makeConfig } = await use('lino-arguments');
+
+// Parse CLI arguments using lino-arguments
+const config = makeConfig({
+  yargs: ({ yargs, getenv }) =>
+    yargs.option('should-pull', {
+      type: 'boolean',
+      default: getenv('SHOULD_PULL', false),
+      describe: 'Pull latest changes before publishing',
+    }),
+});
+
+const { shouldPull } = config;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 10000; // 10 seconds
 
@@ -37,7 +60,7 @@ async function main() {
   try {
     if (shouldPull) {
       // Pull the latest changes we just pushed
-      execSync('git pull origin main', { stdio: 'inherit' });
+      await $`git pull origin main`;
     }
 
     // Get current version
@@ -50,8 +73,8 @@ async function main() {
       `Checking if version ${currentVersion} is already published...`
     );
     try {
-      execSync(`npm view "test-anywhere@${currentVersion}" version`, {
-        encoding: 'utf8',
+      await $`npm view "test-anywhere@${currentVersion}" version`.run({
+        capture: true,
       });
       console.log(`Version ${currentVersion} is already published to npm`);
       setOutput('published', 'true');
@@ -69,7 +92,7 @@ async function main() {
     for (let i = 1; i <= MAX_RETRIES; i++) {
       console.log(`Publish attempt ${i} of ${MAX_RETRIES}...`);
       try {
-        execSync('npm run changeset:publish', { stdio: 'inherit' });
+        await $`npm run changeset:publish`;
         setOutput('published', 'true');
         setOutput('published_version', currentVersion);
         console.log(`\u2705 Published test-anywhere@${currentVersion} to npm`);
