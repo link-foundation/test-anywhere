@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.23
+
+### Patch Changes
+
+- 71adc8f: Fix manual instant release to work with npm trusted publishing by consolidating all release functionality into main.yml workflow
+
 ## 0.8.22
 
 ### Patch Changes
