@@ -35,6 +35,10 @@
   ],
   "author": "",
   "license": "Unlicense",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/link-foundation/test-anywhere"
+  },
   "engines": {
     "node": ">=20.0.0"
   },

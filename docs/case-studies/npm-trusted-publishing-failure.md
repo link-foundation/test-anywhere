@@ -4,18 +4,22 @@
 
 - **Issue**: [#96 - Unable to publish package using trusted publishing](https://github.com/link-foundation/test-anywhere/issues/96)
 - **Failed CI Runs**:
-  - [#20080802494](https://github.com/link-foundation/test-anywhere/actions/runs/20080802494/job/57607164122) (v0.8.16 - initial failure)
-  - [#20081643394](https://github.com/link-foundation/test-anywhere/actions/runs/20081643394) (v0.8.17 - after PR #97 fix, still failing)
+  - [#20080802494](https://github.com/link-foundation/test-anywhere/actions/runs/20080802494/job/57607164122) (v0.8.16 - initial E404 failure)
+  - [#20081643394](https://github.com/link-foundation/test-anywhere/actions/runs/20081643394) (v0.8.17 - E404 after PR #97 fix)
+  - [#20082354362](https://github.com/link-foundation/test-anywhere/actions/runs/20082354362) (v0.8.18 - E422 after PR #98 fix)
 - **Transition PR**: [#95 - Migrate to npm trusted publishing with OIDC](https://github.com/link-foundation/test-anywhere/pull/95)
 - **Initial Fix PR**: [#97 - Fix npm trusted publishing configuration](https://github.com/link-foundation/test-anywhere/pull/97)
+- **npm Version Fix PR**: [#98 - Fix npm trusted publishing](https://github.com/link-foundation/test-anywhere/pull/98)
+- **Repository URL Fix PR**: [#99 - Add repository field to package.json](https://github.com/link-foundation/test-anywhere/pull/99)
 
 ## Executive Summary
 
-The npm trusted publishing feature failed due to **THREE compounding issues**:
+The npm trusted publishing feature failed due to **FOUR compounding issues**:
 
 1. ~~**Typo in NPM settings** - `mail.yml` instead of `main.yml` (FIXED by user)~~
 2. ~~**Missing OIDC permissions** in caller workflow (FIXED by PR #97)~~
-3. **npm CLI version too old** - Using 10.8.2, requires >= 11.5.1 (ROOT CAUSE - NOT FIXED)
+3. ~~**npm CLI version too old** - Using 10.8.2, requires >= 11.5.1 (FIXED by PR #98)~~
+4. **Missing `repository` field in package.json** - npm provenance validation requires this (CURRENT FIX - PR #99)
 
 ## Timeline of Events
 
@@ -36,9 +40,77 @@ The npm trusted publishing feature failed due to **THREE compounding issues**:
 3. **2025-12-09T23:19:56Z**: Publishing attempt for test-anywhere@0.8.17
 4. **2025-12-09T23:19:59Z**: **FAILURE** - Same E404 error with "Access token expired or revoked"
 
+### After PR #98 Fix (2025-12-09T23:53)
+
+1. **2025-12-09T23:50:02Z**: PR #98 merged with npm version update
+2. **2025-12-09T23:53:48Z**: New CI/CD workflow triggered (commit `c3b91bd`)
+3. **2025-12-09T23:54:45Z**: npm version updated to 11.5.1+
+4. **2025-12-09T23:54:45Z**: Publishing attempt for test-anywhere@0.8.18
+5. **2025-12-09T23:54:49Z**: Provenance statement signed and published to transparency log
+6. **2025-12-09T23:54:49Z**: **NEW FAILURE** - E422 Unprocessable Entity
+
+**New error message:**
+
+```
+Error verifying sigstore provenance bundle: Failed to validate repository information:
+package.json: "repository.url" is "", expected to match "https://github.com/link-foundation/test-anywhere" from provenance
+```
+
+This indicates the npm version fix worked (provenance was generated!), but now a new validation failure was exposed.
+
 ## Root Cause Analysis
 
-### PRIMARY Root Cause: npm CLI Version Too Old
+### CURRENT Root Cause: Missing `repository` Field in package.json
+
+**npm trusted publishing with provenance requires the `repository.url` in package.json to match the GitHub repository URL from the OIDC provenance.**
+
+When npm publishes with provenance, it:
+
+1. Generates a sigstore provenance bundle containing the source repository URI from the GitHub Actions environment
+2. Uploads this bundle to npm registry
+3. npm registry **verifies** that the `repository.url` in the uploaded package.json matches the source repository URI in the provenance certificate
+
+**Evidence from CI logs** (`ci-logs/release-run-20082354362.log`):
+
+```
+🦋  error npm error 422 Unprocessable Entity - PUT https://registry.npmjs.org/test-anywhere -
+Error verifying sigstore provenance bundle: Failed to validate repository information:
+package.json: "repository.url" is "", expected to match "https://github.com/link-foundation/test-anywhere" from provenance
+```
+
+**package.json before fix:**
+
+```json
+{
+  "name": "test-anywhere",
+  "version": "0.8.18",
+  "author": "",
+  "license": "Unlicense"
+  // No repository field!
+}
+```
+
+**package.json after fix (PR #99):**
+
+```json
+{
+  "name": "test-anywhere",
+  "version": "0.8.18",
+  "author": "",
+  "license": "Unlicense",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/link-foundation/test-anywhere"
+  }
+}
+```
+
+**Sources**:
+
+- [npm CLI Issue #8036](https://github.com/npm/cli/issues/8036) - npm publish --provenance conflicts with repository.url
+- [npm Provenance Documentation](https://github.com/npm/provenance/blob/main/README.md) - Verify repository.url matches signing certificate
+
+### PREVIOUS Root Cause #1: npm CLI Version Too Old (FIXED by PR #98)
 
 **npm trusted publishing requires npm >= 11.5.1**
 
@@ -163,24 +235,23 @@ inputs:
 
 ## Implementation Status
 
-| Issue                                         | Status       | Fix                   |
-| --------------------------------------------- | ------------ | --------------------- |
-| NPM settings typo (`mail.yml` → `main.yml`)   | ✅ Fixed     | Manual update by user |
-| Missing `id-token: write` in caller workflows | ✅ Fixed     | PR #97 merged         |
-| npm CLI version too old (10.8.2 < 11.5.1)     | ❌ Not Fixed | **This PR**           |
+| Issue                                         | Status   | Fix                   |
+| --------------------------------------------- | -------- | --------------------- |
+| NPM settings typo (`mail.yml` → `main.yml`)   | ✅ Fixed | Manual update by user |
+| Missing `id-token: write` in caller workflows | ✅ Fixed | PR #97 merged         |
+| npm CLI version too old (10.8.2 < 11.5.1)     | ✅ Fixed | PR #98 merged         |
+| Missing `repository` field in package.json    | ✅ Fixed | **PR #99**            |
 
 ## Verification Steps
 
-After applying the npm version fix:
+After applying the repository field fix:
 
-1. Trigger a release by merging to main
-2. Verify in CI logs that npm version is >= 11.5.1:
-   ```
-   Current npm version: 10.8.2
-   Updated npm version: 11.x.x
-   ```
-3. Verify successful OIDC token exchange (no "Access token expired" errors)
-4. Verify package appears on npmjs.com with provenance attestation
+1. Trigger a release by merging PR #99 to main
+2. Verify in CI logs that:
+   - npm version is >= 11.5.1
+   - No "Access token expired" errors (OIDC working)
+   - No E422 repository.url mismatch errors
+3. Verify package appears on npmjs.com with provenance attestation
 
 ## References
 
@@ -195,15 +266,16 @@ After applying the npm version fix:
 
 ## Artifacts
 
-| File                                               | Description                                       |
-| -------------------------------------------------- | ------------------------------------------------- |
-| `npm-settings-screenshot-original.png`             | Screenshot showing original typo (`mail.yml`)     |
-| `npm-settings-screenshot-fixed.png`                | Screenshot showing corrected setting (`main.yml`) |
-| `../ci-logs/release-run-20080802494.log`           | Full CI log from initial failed run (v0.8.16)     |
-| `../ci-logs/release-run-20081643394.log`           | Full CI log from second failed run (v0.8.17)      |
-| `../ci-logs/release-run-20080802494-metadata.json` | CI run metadata                                   |
+| File                                               | Description                                          |
+| -------------------------------------------------- | ---------------------------------------------------- |
+| `npm-settings-screenshot-original.png`             | Screenshot showing original typo (`mail.yml`)        |
+| `npm-settings-screenshot-fixed.png`                | Screenshot showing corrected setting (`main.yml`)    |
+| `../ci-logs/release-run-20080802494.log`           | Full CI log from initial failed run (v0.8.16 - E404) |
+| `../ci-logs/release-run-20081643394.log`           | Full CI log from second failed run (v0.8.17 - E404)  |
+| `../ci-logs/release-run-20082354362.log`           | Full CI log from third failed run (v0.8.18 - E422)   |
+| `../ci-logs/release-run-20080802494-metadata.json` | CI run metadata                                      |
 
 ---
 
 **Last Updated**: 2025-12-10
-**Status**: Root Cause Identified - Fix Implemented (awaiting CI verification)
+**Status**: All Root Causes Identified and Fixed - Awaiting CI verification after PR #99 merge
