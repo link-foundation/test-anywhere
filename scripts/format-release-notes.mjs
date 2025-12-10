@@ -10,11 +10,14 @@
 
 import { execSync } from 'child_process';
 
-const [, , releaseId, version, repository] = process.argv;
+const args = process.argv.slice(2);
+const skipPrDetection = args.includes('--skip-pr-detection');
+const positionalArgs = args.filter((arg) => !arg.startsWith('--'));
+const [releaseId, version, repository] = positionalArgs;
 
 if (!releaseId || !version || !repository) {
   console.error(
-    'Usage: format-release-notes.mjs <releaseId> <version> <repository>'
+    'Usage: format-release-notes.mjs <releaseId> <version> <repository> [--skip-pr-detection]'
   );
   process.exit(1);
 }
@@ -76,10 +79,14 @@ try {
     .join('\n') // Rejoin with newlines
     .replace(/\n{3,}/g, '\n\n'); // Normalize excessive blank lines (3+ becomes 2)
 
-  // Find the PR that contains this commit (if we have a commit hash)
+  // Find the PR that contains this commit (if we have a commit hash and PR detection is not skipped)
   let prNumber = null;
 
-  if (commitHash) {
+  if (skipPrDetection) {
+    // Instant releases (triggered via workflow_dispatch) don't have an associated PR
+    // Skip PR detection entirely to avoid incorrectly linking to unrelated PRs
+    console.log('ℹ️ Skipping PR detection (instant release mode)');
+  } else if (commitHash) {
     try {
       const prsData = JSON.parse(
         execSync(`gh api "repos/${repository}/commits/${commitHash}/pulls"`, {
@@ -103,36 +110,11 @@ try {
       }
     }
   } else {
-    // No commit hash - likely from instant release mode
-    // Try to find the most recent merged PR related to a manual release
-    try {
-      const prsData = JSON.parse(
-        execSync(
-          `gh api "repos/${repository}/pulls?state=closed&sort=updated&direction=desc&per_page=10"`,
-          {
-            encoding: 'utf8',
-          }
-        )
-      );
-
-      // Find the most recent merged PR that's a manual release changeset
-      const relevantPr = prsData.find(
-        (pr) =>
-          pr.merged_at &&
-          (pr.title.includes('manual') || pr.title.includes('changeset')) &&
-          !pr.title.includes('version packages')
-      );
-
-      if (relevantPr) {
-        prNumber = relevantPr.number;
-      }
-    } catch (error) {
-      console.log('⚠️ Could not find related PR (no commit hash available)');
-      console.log('   Error:', error.message);
-      if (process.env.DEBUG) {
-        console.error(error);
-      }
-    }
+    // No commit hash and no skip flag - likely from an older release format
+    // Don't try to guess the PR as it may be incorrect
+    console.log(
+      'ℹ️ No commit hash available and no PR detection skip flag - not adding PR link'
+    );
   }
 
   // Build formatted release notes

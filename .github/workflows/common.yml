@@ -199,7 +199,12 @@ jobs:
 
           if [ -n "$RELEASE_ID" ]; then
             echo "Formatting release notes for $TAG..."
-            node scripts/format-release-notes.mjs "$RELEASE_ID" "$TAG" "${{ github.repository }}"
+            # For instant releases (workflow_dispatch), skip PR detection since there is no associated PR
+            if [ "${{ inputs.release_mode }}" == "instant" ]; then
+              node scripts/format-release-notes.mjs "$RELEASE_ID" "$TAG" "${{ github.repository }}" --skip-pr-detection
+            else
+              node scripts/format-release-notes.mjs "$RELEASE_ID" "$TAG" "${{ github.repository }}"
+            fi
             echo "✅ Formatted release notes for $TAG"
           else
             echo "⚠️ Could not find release for $TAG"
