@@ -12,12 +12,41 @@ if [ "$SHOULD_PULL" == "true" ]; then
   git pull origin main
 fi
 
+# Get current version
+CURRENT_VERSION=$(node -p "require('./package.json').version")
+echo "Current version to publish: $CURRENT_VERSION"
+
+# Check if this version is already published on npm
+echo "Checking if version $CURRENT_VERSION is already published..."
+if npm view "test-anywhere@$CURRENT_VERSION" version 2>/dev/null; then
+  echo "Version $CURRENT_VERSION is already published to npm"
+  echo "published=true" >> $GITHUB_OUTPUT
+  echo "published_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+  echo "already_published=true" >> $GITHUB_OUTPUT
+  exit 0
+fi
+
+echo "Version $CURRENT_VERSION not found on npm, proceeding with publish..."
+
 # Publish to npm using OIDC trusted publishing
-npm run changeset:publish
+# Add retry logic for transient failures
+MAX_RETRIES=3
+RETRY_DELAY=10
 
-echo "published=true" >> $GITHUB_OUTPUT
+for i in $(seq 1 $MAX_RETRIES); do
+  echo "Publish attempt $i of $MAX_RETRIES..."
+  if npm run changeset:publish; then
+    echo "published=true" >> $GITHUB_OUTPUT
+    echo "published_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+    echo "✅ Published test-anywhere@$CURRENT_VERSION to npm"
+    exit 0
+  else
+    if [ $i -lt $MAX_RETRIES ]; then
+      echo "Publish failed, waiting ${RETRY_DELAY}s before retry..."
+      sleep $RETRY_DELAY
+    fi
+  fi
+done
 
-# Get published version
-PUBLISHED_VERSION=$(node -p "require('./package.json').version")
-echo "published_version=$PUBLISHED_VERSION" >> $GITHUB_OUTPUT
-echo "✅ Published test-anywhere@$PUBLISHED_VERSION to npm"
+echo "❌ Failed to publish after $MAX_RETRIES attempts"
+exit 1
