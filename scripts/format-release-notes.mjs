@@ -12,22 +12,53 @@
  * 2. Fall back to --commit-sha argument (passed from workflow)
  * 3. Look up PRs that contain the commit via GitHub API
  * 4. If no PR found, simply don't display any PR link (no guessing)
+ *
+ * Uses link-foundation libraries:
+ * - use-m: Dynamic package loading without package.json dependencies
+ * - command-stream: Modern shell command execution with streaming support
+ * - lino-arguments: Unified configuration from CLI args, env vars, and .lenv files
  */
 
-import { execSync } from 'child_process';
+// Load use-m dynamically
+const { use } = eval(
+  await (await fetch('https://unpkg.com/use-m/use.js')).text()
+);
 
-const args = process.argv.slice(2);
+// Import link-foundation libraries
+const { $ } = await use('command-stream');
+const { makeConfig } = await use('lino-arguments');
 
-// Parse --commit-sha=<sha> argument
-const commitShaArg = args.find((arg) => arg.startsWith('--commit-sha='));
-const passedCommitSha = commitShaArg ? commitShaArg.split('=')[1] : null;
+// Parse CLI arguments using lino-arguments
+const config = makeConfig({
+  yargs: ({ yargs, getenv }) =>
+    yargs
+      .option('release-id', {
+        type: 'string',
+        default: getenv('RELEASE_ID', ''),
+        describe: 'GitHub release ID',
+      })
+      .option('version', {
+        type: 'string',
+        default: getenv('VERSION', ''),
+        describe: 'Version number (e.g., v1.0.0)',
+      })
+      .option('repository', {
+        type: 'string',
+        default: getenv('REPOSITORY', ''),
+        describe: 'GitHub repository (e.g., owner/repo)',
+      })
+      .option('commit-sha', {
+        type: 'string',
+        default: getenv('COMMIT_SHA', ''),
+        describe: 'Commit SHA for PR detection',
+      }),
+});
 
-const positionalArgs = args.filter((arg) => !arg.startsWith('--'));
-const [releaseId, version, repository] = positionalArgs;
+const { releaseId, version, repository, commitSha: passedCommitSha } = config;
 
 if (!releaseId || !version || !repository) {
   console.error(
-    'Usage: format-release-notes.mjs <releaseId> <version> <repository> [--commit-sha=<sha>]'
+    'Usage: format-release-notes.mjs --release-id <releaseId> --version <version> --repository <repository> [--commit-sha <sha>]'
   );
   process.exit(1);
 }
@@ -36,11 +67,10 @@ const packageName = 'test-anywhere';
 
 try {
   // Get current release body
-  const releaseData = JSON.parse(
-    execSync(`gh api repos/${repository}/releases/${releaseId}`, {
-      encoding: 'utf8',
-    })
-  );
+  const result = await $`gh api repos/${repository}/releases/${releaseId}`.run({
+    capture: true,
+  });
+  const releaseData = JSON.parse(result.stdout);
 
   const currentBody = releaseData.body || '';
 
@@ -103,14 +133,11 @@ try {
     );
 
     try {
-      const prsData = JSON.parse(
-        execSync(
-          `gh api "repos/${repository}/commits/${commitShaToLookup}/pulls"`,
-          {
-            encoding: 'utf8',
-          }
-        )
-      );
+      const prResult =
+        await $`gh api "repos/${repository}/commits/${commitShaToLookup}/pulls"`.run(
+          { capture: true }
+        );
+      const prsData = JSON.parse(prResult.stdout);
 
       // Find the PR that's not the version bump PR (not "chore: version packages")
       const relevantPr = prsData.find(
@@ -156,12 +183,8 @@ try {
 
   // Update the release using JSON input to properly handle special characters
   const updatePayload = JSON.stringify({ body: formattedBody });
-  execSync(
-    `gh api repos/${repository}/releases/${releaseId} -X PATCH --input -`,
-    {
-      encoding: 'utf8',
-      input: updatePayload,
-    }
+  await $`gh api repos/${repository}/releases/${releaseId} -X PATCH --input -`.run(
+    { stdin: updatePayload }
   );
 
   console.log(`✅ Formatted release notes for v${versionWithoutV}`);

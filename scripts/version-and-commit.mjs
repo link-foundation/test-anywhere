@@ -2,34 +2,50 @@
 
 /**
  * Version packages and commit to main
- * Usage: node scripts/version-and-commit.mjs [changeset|instant] [bump_type] [description]
+ * Usage: node scripts/version-and-commit.mjs --mode <changeset|instant> [--bump-type <type>] [--description <desc>]
  *   changeset: Run changeset version
  *   instant: Run instant version bump with bump_type (patch|minor|major) and optional description
+ *
+ * Uses link-foundation libraries:
+ * - use-m: Dynamic package loading without package.json dependencies
+ * - command-stream: Modern shell command execution with streaming support
+ * - lino-arguments: Unified configuration from CLI args, env vars, and .lenv files
  */
 
-import { execSync } from 'child_process';
 import { readFileSync, appendFileSync, readdirSync } from 'fs';
 
-const mode = process.argv[2] || 'changeset';
-const bumpType = process.argv[3] || '';
-const description = process.argv[4] || '';
+// Load use-m dynamically
+const { use } = eval(
+  await (await fetch('https://unpkg.com/use-m/use.js')).text()
+);
 
-/**
- * Execute command and return output
- * @param {string} cmd
- * @param {object} options
- */
-function exec(cmd, options = {}) {
-  return execSync(cmd, { encoding: 'utf8', ...options }).trim();
-}
+// Import link-foundation libraries
+const { $ } = await use('command-stream');
+const { makeConfig } = await use('lino-arguments');
 
-/**
- * Execute command with inherited stdio
- * @param {string} cmd
- */
-function execInherit(cmd) {
-  execSync(cmd, { stdio: 'inherit' });
-}
+// Parse CLI arguments using lino-arguments
+const config = makeConfig({
+  yargs: ({ yargs, getenv }) =>
+    yargs
+      .option('mode', {
+        type: 'string',
+        default: getenv('MODE', 'changeset'),
+        describe: 'Version mode: changeset or instant',
+        choices: ['changeset', 'instant'],
+      })
+      .option('bump-type', {
+        type: 'string',
+        default: getenv('BUMP_TYPE', ''),
+        describe: 'Version bump type for instant mode: major, minor, or patch',
+      })
+      .option('description', {
+        type: 'string',
+        default: getenv('DESCRIPTION', ''),
+        describe: 'Description for instant version bump',
+      }),
+});
+
+const { mode, bumpType, description } = config;
 
 /**
  * Append to GitHub Actions output file
@@ -60,27 +76,33 @@ function countChangesets() {
  * Get package version
  * @param {string} source - 'local' or 'remote'
  */
-function getVersion(source = 'local') {
+async function getVersion(source = 'local') {
   if (source === 'remote') {
-    const content = exec('git show origin/main:package.json');
-    return JSON.parse(content).version;
+    const result = await $`git show origin/main:package.json`.run({
+      capture: true,
+    });
+    return JSON.parse(result.stdout).version;
   }
   return JSON.parse(readFileSync('./package.json', 'utf8')).version;
 }
 
-function main() {
+async function main() {
   try {
     // Configure git
-    execInherit('git config user.name "github-actions[bot]"');
-    execInherit(
-      'git config user.email "github-actions[bot]@users.noreply.github.com"'
-    );
+    await $`git config user.name "github-actions[bot]"`;
+    await $`git config user.email "github-actions[bot]@users.noreply.github.com"`;
 
     // Check if remote main has advanced (handles re-runs after partial success)
     console.log('Checking for remote changes...');
-    execInherit('git fetch origin main');
-    const localHead = exec('git rev-parse HEAD');
-    const remoteHead = exec('git rev-parse origin/main');
+    await $`git fetch origin main`;
+
+    const localHeadResult = await $`git rev-parse HEAD`.run({ capture: true });
+    const localHead = localHeadResult.stdout.trim();
+
+    const remoteHeadResult = await $`git rev-parse origin/main`.run({
+      capture: true,
+    });
+    const remoteHead = remoteHeadResult.stdout.trim();
 
     if (localHead !== remoteHead) {
       console.log(
@@ -89,7 +111,7 @@ function main() {
       console.log('This may indicate a previous attempt partially succeeded.');
 
       // Check if the remote version is already the expected bump
-      const remoteVersion = getVersion('remote');
+      const remoteVersion = await getVersion('remote');
       console.log(`Remote version: ${remoteVersion}`);
 
       // Check if there are changesets to process
@@ -106,12 +128,12 @@ function main() {
         return;
       } else {
         console.log('Rebasing on remote main to incorporate changes...');
-        execInherit('git rebase origin/main');
+        await $`git rebase origin/main`;
       }
     }
 
     // Get current version before bump
-    const oldVersion = getVersion();
+    const oldVersion = await getVersion();
     console.log(`Current version: ${oldVersion}`);
 
     let commitSuffix;
@@ -119,42 +141,41 @@ function main() {
       console.log('Running instant version bump...');
       // Run instant version bump script
       if (description) {
-        execInherit(
-          `node scripts/instant-version-bump.mjs "${bumpType}" "${description}"`
-        );
+        await $`node scripts/instant-version-bump.mjs --bump-type "${bumpType}" --description "${description}"`;
       } else {
-        execInherit(`node scripts/instant-version-bump.mjs "${bumpType}"`);
+        await $`node scripts/instant-version-bump.mjs --bump-type "${bumpType}"`;
       }
       commitSuffix = `Manual ${bumpType} release`;
     } else {
       console.log('Running changeset version...');
       // Run changeset version to bump versions and update CHANGELOG
-      execInherit('npm run changeset:version');
+      await $`npm run changeset:version`;
       commitSuffix =
         '\uD83E\uDD16 Generated with [Claude Code](https://claude.com/claude-code)';
     }
 
     // Get new version after bump
-    const newVersion = getVersion();
+    const newVersion = await getVersion();
     console.log(`New version: ${newVersion}`);
     setOutput('new_version', newVersion);
 
     // Check if there are changes to commit
-    const status = exec('git status --porcelain');
+    const statusResult = await $`git status --porcelain`.run({ capture: true });
+    const status = statusResult.stdout.trim();
+
     if (status) {
       console.log('Changes detected, committing...');
 
       // Stage all changes (package.json, package-lock.json, CHANGELOG.md, deleted changesets)
-      execInherit('git add -A');
+      await $`git add -A`;
 
       // Commit with version number and suffix as message
       const commitMessage = `${newVersion}\n\n${commitSuffix}`;
-      execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, {
-        stdio: 'inherit',
-      });
+      const escapedMessage = commitMessage.replace(/"/g, '\\"');
+      await $`git commit -m "${escapedMessage}"`;
 
       // Push directly to main
-      execInherit('git push origin main');
+      await $`git push origin main`;
 
       console.log('\u2705 Version bump committed and pushed to main');
       setOutput('version_committed', 'true');

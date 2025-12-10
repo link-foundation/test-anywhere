@@ -4,21 +4,49 @@
  * Instant version bump script for manual releases
  * Bypasses the changeset workflow and directly updates version and changelog
  *
- * Usage: node scripts/instant-version-bump.mjs <bump_type> [description]
+ * Usage: node scripts/instant-version-bump.mjs --bump-type <major|minor|patch> [--description <description>]
+ *
+ * Uses link-foundation libraries:
+ * - use-m: Dynamic package loading without package.json dependencies
+ * - command-stream: Modern shell command execution with streaming support
+ * - lino-arguments: Unified configuration from CLI args, env vars, and .lenv files
  */
 
-import { execSync } from 'child_process';
 import { readFileSync, writeFileSync } from 'fs';
 
+// Load use-m dynamically
+const { use } = eval(
+  await (await fetch('https://unpkg.com/use-m/use.js')).text()
+);
+
+// Import link-foundation libraries
+const { $ } = await use('command-stream');
+const { makeConfig } = await use('lino-arguments');
+
+// Parse CLI arguments using lino-arguments
+const config = makeConfig({
+  yargs: ({ yargs, getenv }) =>
+    yargs
+      .option('bump-type', {
+        type: 'string',
+        default: getenv('BUMP_TYPE', ''),
+        describe: 'Version bump type: major, minor, or patch',
+        choices: ['major', 'minor', 'patch'],
+      })
+      .option('description', {
+        type: 'string',
+        default: getenv('DESCRIPTION', ''),
+        describe: 'Description for the version bump',
+      }),
+});
+
 try {
-  // Get bump type from command line arguments
-  const bumpType = process.argv[2];
-  const description =
-    process.argv.slice(3).join(' ') || `Manual ${bumpType} release`;
+  const { bumpType, description: descriptionArg } = config;
+  const description = descriptionArg || `Manual ${bumpType} release`;
 
   if (!bumpType || !['major', 'minor', 'patch'].includes(bumpType)) {
     console.error(
-      'Usage: node scripts/instant-version-bump.mjs <major|minor|patch> [description]'
+      'Usage: node scripts/instant-version-bump.mjs --bump-type <major|minor|patch> [--description <description>]'
     );
     process.exit(1);
   }
@@ -31,9 +59,7 @@ try {
   console.log(`Current version: ${oldVersion}`);
 
   // Bump version using npm version (doesn't create git tag)
-  execSync(`npm version ${bumpType} --no-git-tag-version`, {
-    stdio: 'inherit',
-  });
+  await $`npm version ${bumpType} --no-git-tag-version`;
 
   // Get new version
   const updatedPackageJson = JSON.parse(readFileSync('package.json', 'utf-8'));
@@ -70,9 +96,7 @@ try {
     if (mainHeadingMatch) {
       const insertPosition =
         mainHeadingMatch.index + mainHeadingMatch[0].length;
-      changelog = `${changelog.slice(0, insertPosition)}\n\n${
-        newEntry
-      }${changelog.slice(insertPosition)}`;
+      changelog = `${changelog.slice(0, insertPosition)}\n\n${newEntry}${changelog.slice(insertPosition)}`;
     } else {
       // If no headings at all, prepend
       changelog = `${newEntry}\n${changelog}`;
@@ -84,7 +108,7 @@ try {
 
   // Synchronize package-lock.json
   console.log('\nSynchronizing package-lock.json...');
-  execSync('npm install --package-lock-only', { stdio: 'inherit' });
+  await $`npm install --package-lock-only`;
 
   console.log('\n✅ Instant version bump complete');
   console.log(`Version: ${oldVersion} → ${newVersion}`);

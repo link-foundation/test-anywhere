@@ -2,9 +2,12 @@
 
 /**
  * Prepare commit message hook - warns if committing source changes without a changeset
+ *
+ * Uses link-foundation libraries:
+ * - use-m: Dynamic package loading without package.json dependencies
+ * - command-stream: Modern shell command execution with streaming support
  */
 
-import { execSync } from 'child_process';
 import { readdirSync } from 'fs';
 import { createInterface } from 'readline';
 
@@ -25,6 +28,14 @@ if (
   process.exit(0);
 }
 
+// Load use-m dynamically
+const { use } = eval(
+  await (await fetch('https://unpkg.com/use-m/use.js')).text()
+);
+
+// Import command-stream for shell command execution
+const { $ } = await use('command-stream');
+
 try {
   // Check if there are any changesets (excluding README.md)
   const changesetDir = '.changeset';
@@ -34,11 +45,12 @@ try {
   const changesetCount = changesetFiles.length;
 
   // Check if we're modifying source files, package.json, or tests
-  let modifiedSrc;
+  let modifiedSrc = [];
   try {
-    modifiedSrc = execSync('git diff --cached --name-only', {
-      encoding: 'utf-8',
-    })
+    const result = await $`git diff --cached --name-only`.run({
+      capture: true,
+    });
+    modifiedSrc = result.stdout
       .split('\n')
       .filter((file) => file.match(/^(src\/|package\.json)/))
       .filter(Boolean);

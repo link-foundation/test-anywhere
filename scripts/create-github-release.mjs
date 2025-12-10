@@ -2,20 +2,49 @@
 
 /**
  * Create GitHub Release from CHANGELOG.md
- * Usage: node scripts/create-github-release.mjs <version> <repository>
+ * Usage: node scripts/create-github-release.mjs --version <version> --repository <repository>
  *   version: Version number (e.g., 1.0.0)
  *   repository: GitHub repository (e.g., owner/repo)
+ *
+ * Uses link-foundation libraries:
+ * - use-m: Dynamic package loading without package.json dependencies
+ * - command-stream: Modern shell command execution with streaming support
+ * - lino-arguments: Unified configuration from CLI args, env vars, and .lenv files
  */
 
-import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 
-const [version, repository] = process.argv.slice(2);
+// Load use-m dynamically
+const { use } = eval(
+  await (await fetch('https://unpkg.com/use-m/use.js')).text()
+);
+
+// Import link-foundation libraries
+const { $ } = await use('command-stream');
+const { makeConfig } = await use('lino-arguments');
+
+// Parse CLI arguments using lino-arguments
+const config = makeConfig({
+  yargs: ({ yargs, getenv }) =>
+    yargs
+      .option('version', {
+        type: 'string',
+        default: getenv('VERSION', ''),
+        describe: 'Version number (e.g., 1.0.0)',
+      })
+      .option('repository', {
+        type: 'string',
+        default: getenv('REPOSITORY', ''),
+        describe: 'GitHub repository (e.g., owner/repo)',
+      }),
+});
+
+const { version, repository } = config;
 
 if (!version || !repository) {
   console.error('Error: Missing required arguments');
   console.error(
-    'Usage: node scripts/create-github-release.mjs <version> <repository>'
+    'Usage: node scripts/create-github-release.mjs --version <version> --repository <repository>'
   );
   process.exit(1);
 }
@@ -44,10 +73,8 @@ try {
   }
 
   // Create release using gh CLI
-  execSync(
-    `gh release create "${tag}" --title "${version}" --notes "${releaseNotes.replace(/"/g, '\\"')}" --repo "${repository}"`,
-    { stdio: 'inherit' }
-  );
+  const escapedNotes = releaseNotes.replace(/"/g, '\\"');
+  await $`gh release create "${tag}" --title "${version}" --notes "${escapedNotes}" --repo "${repository}"`;
 
   console.log(`\u2705 Created GitHub release: ${tag}`);
 } catch (error) {

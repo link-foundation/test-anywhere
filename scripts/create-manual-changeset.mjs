@@ -2,24 +2,52 @@
 
 /**
  * Create a changeset file for manual releases
- * Usage: node scripts/create-manual-changeset.mjs <bump_type> [description]
+ * Usage: node scripts/create-manual-changeset.mjs --bump-type <major|minor|patch> [--description <description>]
+ *
+ * Uses link-foundation libraries:
+ * - use-m: Dynamic package loading without package.json dependencies
+ * - command-stream: Modern shell command execution with streaming support
+ * - lino-arguments: Unified configuration from CLI args, env vars, and .lenv files
  */
 
 import { writeFileSync } from 'fs';
 import { randomBytes } from 'crypto';
-import { execSync } from 'child_process';
+
+// Load use-m dynamically
+const { use } = eval(
+  await (await fetch('https://unpkg.com/use-m/use.js')).text()
+);
+
+// Import link-foundation libraries
+const { $ } = await use('command-stream');
+const { makeConfig } = await use('lino-arguments');
+
+// Parse CLI arguments using lino-arguments
+const config = makeConfig({
+  yargs: ({ yargs, getenv }) =>
+    yargs
+      .option('bump-type', {
+        type: 'string',
+        default: getenv('BUMP_TYPE', ''),
+        describe: 'Version bump type: major, minor, or patch',
+        choices: ['major', 'minor', 'patch'],
+      })
+      .option('description', {
+        type: 'string',
+        default: getenv('DESCRIPTION', ''),
+        describe: 'Description for the changeset',
+      }),
+});
 
 try {
-  // Get bump type and description from command line arguments
-  const bumpType = process.argv[2];
-  const descriptionArg = process.argv.slice(3).join(' ');
+  const { bumpType, description: descriptionArg } = config;
 
   // Use provided description or default based on bump type
   const description = descriptionArg || `Manual ${bumpType} release`;
 
   if (!bumpType || !['major', 'minor', 'patch'].includes(bumpType)) {
     console.error(
-      'Usage: node scripts/create-manual-changeset.mjs <major|minor|patch> [description]'
+      'Usage: node scripts/create-manual-changeset.mjs --bump-type <major|minor|patch> [--description <description>]'
     );
     process.exit(1);
   }
@@ -44,7 +72,7 @@ ${description}
 
   // Format with Prettier
   console.log('\nFormatting with Prettier...');
-  execSync(`npx prettier --write "${changesetFile}"`, { stdio: 'inherit' });
+  await $`npx prettier --write "${changesetFile}"`;
 
   console.log('\n✅ Changeset created and formatted successfully');
 } catch (error) {
