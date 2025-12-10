@@ -258,7 +258,7 @@ This would provide better default formatting with PR links.
 1. `docs/case-studies/release-0.8.19-data.json` - GitHub API release data
 2. `docs/case-studies/workflow-run-20082679202.log` - Full workflow execution logs
 3. `docs/case-studies/recent-workflow-runs.json` - Recent workflow run history
-4. `docs/issue-100-screenshot.png` - Visual evidence of the issue
+4. `issue-100-screenshot.png` - Visual evidence of the issue
 
 ### External Resources
 
