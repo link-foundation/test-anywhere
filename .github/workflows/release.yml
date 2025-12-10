@@ -166,7 +166,7 @@ jobs:
         run: npm install
 
       - name: Update npm for OIDC trusted publishing
-        run: ./scripts/setup-npm.sh
+        run: node scripts/setup-npm.mjs
 
       - name: Check for changesets
         id: check_changesets
@@ -179,25 +179,25 @@ jobs:
       - name: Version packages and commit to main
         if: steps.check_changesets.outputs.has_changesets == 'true'
         id: version
-        run: ./scripts/version-and-commit.sh changeset
+        run: node scripts/version-and-commit.mjs changeset
 
       - name: Publish to npm
         # Run if version was committed OR if a previous attempt already committed (for re-runs)
         if: steps.version.outputs.version_committed == 'true' || steps.version.outputs.already_released == 'true'
         id: publish
-        run: ./scripts/publish-to-npm.sh true
+        run: node scripts/publish-to-npm.mjs true
 
       - name: Create GitHub Release
         if: steps.publish.outputs.published == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./scripts/create-github-release.sh "${{ steps.publish.outputs.published_version }}" "${{ github.repository }}"
+        run: node scripts/create-github-release.mjs "${{ steps.publish.outputs.published_version }}" "${{ github.repository }}"
 
       - name: Format GitHub release notes
         if: steps.publish.outputs.published == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./scripts/format-github-release.sh "${{ steps.publish.outputs.published_version }}" "${{ github.repository }}" "${{ github.sha }}"
+        run: node scripts/format-github-release.mjs "${{ steps.publish.outputs.published_version }}" "${{ github.repository }}" "${{ github.sha }}"
 
   # Manual Instant Release - triggered via workflow_dispatch with instant mode
   # This job is in release.yml because npm trusted publishing
@@ -226,29 +226,29 @@ jobs:
         run: npm install
 
       - name: Update npm for OIDC trusted publishing
-        run: ./scripts/setup-npm.sh
+        run: node scripts/setup-npm.mjs
 
       - name: Version packages and commit to main
         id: version
-        run: ./scripts/version-and-commit.sh instant "${{ github.event.inputs.bump_type }}" "${{ github.event.inputs.description }}"
+        run: node scripts/version-and-commit.mjs instant "${{ github.event.inputs.bump_type }}" "${{ github.event.inputs.description }}"
 
       - name: Publish to npm
         # Run if version was committed OR if a previous attempt already committed (for re-runs)
         if: steps.version.outputs.version_committed == 'true' || steps.version.outputs.already_released == 'true'
         id: publish
-        run: ./scripts/publish-to-npm.sh false
+        run: node scripts/publish-to-npm.mjs false
 
       - name: Create GitHub Release
         if: steps.publish.outputs.published == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./scripts/create-github-release.sh "${{ steps.publish.outputs.published_version }}" "${{ github.repository }}"
+        run: node scripts/create-github-release.mjs "${{ steps.publish.outputs.published_version }}" "${{ github.repository }}"
 
       - name: Format GitHub release notes
         if: steps.publish.outputs.published == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./scripts/format-github-release.sh "${{ steps.publish.outputs.published_version }}" "${{ github.repository }}" "${{ github.sha }}"
+        run: node scripts/format-github-release.mjs "${{ steps.publish.outputs.published_version }}" "${{ github.repository }}" "${{ github.sha }}"
 
   # Manual Changeset PR - creates a pull request with the changeset for review
   changeset-pr:
