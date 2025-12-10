@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.31
+
+### Patch Changes
+
+- 472aec5: Test patch release (changeset pull request)
+
 ## 0.8.30
 
 ### Patch Changes
