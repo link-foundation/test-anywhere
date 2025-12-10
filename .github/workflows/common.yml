@@ -199,12 +199,9 @@ jobs:
 
           if [ -n "$RELEASE_ID" ]; then
             echo "Formatting release notes for $TAG..."
-            # For instant releases (workflow_dispatch), skip PR detection since there is no associated PR
-            if [ "${{ inputs.release_mode }}" == "instant" ]; then
-              node scripts/format-release-notes.mjs "$RELEASE_ID" "$TAG" "${{ github.repository }}" --skip-pr-detection
-            else
-              node scripts/format-release-notes.mjs "$RELEASE_ID" "$TAG" "${{ github.repository }}"
-            fi
+            # Pass the trigger commit SHA for PR detection
+            # This allows proper PR lookup even if the changelog doesn't have a commit hash
+            node scripts/format-release-notes.mjs "$RELEASE_ID" "$TAG" "${{ github.repository }}" --commit-sha=${{ github.sha }}
             echo "✅ Formatted release notes for $TAG"
           else
             echo "⚠️ Could not find release for $TAG"
