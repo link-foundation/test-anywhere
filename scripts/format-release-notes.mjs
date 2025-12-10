@@ -3,18 +3,31 @@
 /**
  * Script to format GitHub release notes with proper formatting:
  * - Fix special characters like \n
- * - Add link to PR with changeset (if available)
+ * - Add link to PR that contains the release commit (if found)
  * - Add shields.io NPM version badge
  * - Format nicely with proper markdown
+ *
+ * PR Detection Logic:
+ * 1. Extract commit hash from changelog entry (if present)
+ * 2. Fall back to --commit-sha argument (passed from workflow)
+ * 3. Look up PRs that contain the commit via GitHub API
+ * 4. If no PR found, simply don't display any PR link (no guessing)
  */
 
 import { execSync } from 'child_process';
 
-const [, , releaseId, version, repository] = process.argv;
+const args = process.argv.slice(2);
+
+// Parse --commit-sha=<sha> argument
+const commitShaArg = args.find((arg) => arg.startsWith('--commit-sha='));
+const passedCommitSha = commitShaArg ? commitShaArg.split('=')[1] : null;
+
+const positionalArgs = args.filter((arg) => !arg.startsWith('--'));
+const [releaseId, version, repository] = positionalArgs;
 
 if (!releaseId || !version || !repository) {
   console.error(
-    'Usage: format-release-notes.mjs <releaseId> <version> <repository>'
+    'Usage: format-release-notes.mjs <releaseId> <version> <repository> [--commit-sha=<sha>]'
   );
   process.exit(1);
 }
@@ -76,15 +89,27 @@ try {
     .join('\n') // Rejoin with newlines
     .replace(/\n{3,}/g, '\n\n'); // Normalize excessive blank lines (3+ becomes 2)
 
-  // Find the PR that contains this commit (if we have a commit hash)
+  // Find the PR that contains the release commit
+  // Uses commit hash from changelog or passed commit SHA from workflow
   let prNumber = null;
 
-  if (commitHash) {
+  // Determine which commit SHA to use for PR lookup
+  const commitShaToLookup = commitHash || passedCommitSha;
+
+  if (commitShaToLookup) {
+    const source = commitHash ? 'changelog' : 'workflow';
+    console.log(
+      `ℹ️ Looking up PR for commit ${commitShaToLookup} (from ${source})`
+    );
+
     try {
       const prsData = JSON.parse(
-        execSync(`gh api "repos/${repository}/commits/${commitHash}/pulls"`, {
-          encoding: 'utf8',
-        })
+        execSync(
+          `gh api "repos/${repository}/commits/${commitShaToLookup}/pulls"`,
+          {
+            encoding: 'utf8',
+          }
+        )
       );
 
       // Find the PR that's not the version bump PR (not "chore: version packages")
@@ -94,45 +119,26 @@ try {
 
       if (relevantPr) {
         prNumber = relevantPr.number;
+        console.log(`✅ Found PR #${prNumber} containing commit`);
+      } else if (prsData.length > 0) {
+        console.log(
+          '⚠️ Found PRs but all are version bump PRs, not linking any'
+        );
+      } else {
+        console.log(
+          'ℹ️ No PR found containing this commit - not adding PR link'
+        );
       }
     } catch (error) {
-      console.log('⚠️ Could not find PR for commit', commitHash);
+      console.log('⚠️ Could not find PR for commit', commitShaToLookup);
       console.log('   Error:', error.message);
       if (process.env.DEBUG) {
         console.error(error);
       }
     }
   } else {
-    // No commit hash - likely from instant release mode
-    // Try to find the most recent merged PR related to a manual release
-    try {
-      const prsData = JSON.parse(
-        execSync(
-          `gh api "repos/${repository}/pulls?state=closed&sort=updated&direction=desc&per_page=10"`,
-          {
-            encoding: 'utf8',
-          }
-        )
-      );
-
-      // Find the most recent merged PR that's a manual release changeset
-      const relevantPr = prsData.find(
-        (pr) =>
-          pr.merged_at &&
-          (pr.title.includes('manual') || pr.title.includes('changeset')) &&
-          !pr.title.includes('version packages')
-      );
-
-      if (relevantPr) {
-        prNumber = relevantPr.number;
-      }
-    } catch (error) {
-      console.log('⚠️ Could not find related PR (no commit hash available)');
-      console.log('   Error:', error.message);
-      if (process.env.DEBUG) {
-        console.error(error);
-      }
-    }
+    // No commit hash available from any source
+    console.log('ℹ️ No commit SHA available - not adding PR link');
   }
 
   // Build formatted release notes

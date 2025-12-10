@@ -199,7 +199,9 @@ jobs:
 
           if [ -n "$RELEASE_ID" ]; then
             echo "Formatting release notes for $TAG..."
-            node scripts/format-release-notes.mjs "$RELEASE_ID" "$TAG" "${{ github.repository }}"
+            # Pass the trigger commit SHA for PR detection
+            # This allows proper PR lookup even if the changelog doesn't have a commit hash
+            node scripts/format-release-notes.mjs "$RELEASE_ID" "$TAG" "${{ github.repository }}" --commit-sha=${{ github.sha }}
             echo "✅ Formatted release notes for $TAG"
           else
             echo "⚠️ Could not find release for $TAG"
