@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.25
+
+### Patch Changes
+
+- f481813: Fix PR detection in release notes - properly look up PRs by commit hash via GitHub API instead of using fallback guessing. If no PR contains the commit, no PR link is shown.
+
 ## 0.8.24
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "test-anywhere",
-  "version": "0.8.24",
+  "version": "0.8.25",
   "description": "A JavaScript testing framework that is built on top of built-in testing frameworks of Bun, Deno, and Node.js",
   "type": "module",
   "main": "src/index.js",
