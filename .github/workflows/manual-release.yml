@@ -1,4 +1,20 @@
-name: Manual Release
+# DEPRECATED: This workflow has been consolidated into main.yml
+#
+# npm trusted publishing only allows ONE workflow file to be registered as a
+# trusted publisher. Since our npm settings are configured for main.yml,
+# all publishing must go through that workflow.
+#
+# Please use the CI/CD workflow (main.yml) instead:
+# 1. Go to Actions tab
+# 2. Select "CI/CD" workflow
+# 3. Click "Run workflow"
+# 4. Choose your release_mode and bump_type
+#
+# See: docs/case-studies/issue-96/npm-trusted-publishing-failure.md
+#
+# This file is kept for reference but will show a deprecation warning.
+
+name: Manual Release (DEPRECATED)
 
 on:
   workflow_dispatch:
@@ -25,86 +41,38 @@ on:
         type: string
 
 jobs:
-  # Instant release - commits directly to main and publishes
-  instant-release:
-    name: Instant Release
-    if: github.event.inputs.release_mode == 'instant'
-    # Permissions required for npm OIDC trusted publishing
-    # Note: These must be in the caller workflow, not just the reusable workflow
-    # npm validates the entry point workflow file specified in trusted publisher settings
-    permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
-    uses: ./.github/workflows/common.yml
-    with:
-      node-version: '20.x'
-      skip-changeset-check: true
-      commit-message-suffix: 'Manual ${{ github.event.inputs.bump_type }} release'
-      release_mode: 'instant'
-      bump_type: ${{ github.event.inputs.bump_type }}
-      description: ${{ github.event.inputs.description }}
-
-  # Changeset PR - creates a pull request with the changeset for review
-  changeset-pr:
-    name: Create Changeset PR
-    if: github.event.inputs.release_mode == 'changeset-pr'
+  deprecation-warning:
+    name: Deprecation Warning
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Create changeset file
+      - name: Show deprecation warning
         run: |
-          # Get description from workflow input or use default
-          DESCRIPTION="${{ github.event.inputs.description }}"
+          echo "::warning::This workflow is DEPRECATED and will not publish successfully."
+          echo "::warning::npm trusted publishing only allows one workflow file (main.yml) as trusted publisher."
+          echo "::warning::Please use the CI/CD workflow (main.yml) instead:"
+          echo "::warning::1. Go to Actions tab"
+          echo "::warning::2. Select 'CI/CD' workflow"
+          echo "::warning::3. Click 'Run workflow'"
+          echo "::warning::4. Choose your release_mode (${{ github.event.inputs.release_mode }}) and bump_type (${{ github.event.inputs.bump_type }})"
+          echo ""
+          echo "See: docs/case-studies/issue-96/npm-trusted-publishing-failure.md"
+          echo ""
+          echo "Triggering the CI/CD workflow with your inputs..."
 
-          # Run the create-manual-changeset script
-          if [ -n "$DESCRIPTION" ]; then
-            node scripts/create-manual-changeset.mjs "${{ github.event.inputs.bump_type }}" "$DESCRIPTION"
-          else
-            node scripts/create-manual-changeset.mjs "${{ github.event.inputs.bump_type }}"
-          fi
-
-      - name: Format changeset with Prettier
-        run: |
-          # Run Prettier on the changeset file to ensure it matches project style
-          npx prettier --write ".changeset/*.md" || true
-
-          echo "Formatted changeset files"
-
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
+      - name: Trigger CI/CD workflow
+        uses: actions/github-script@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore: add changeset for manual ${{ github.event.inputs.bump_type }} release'
-          branch: changeset-manual-release-${{ github.run_id }}
-          delete-branch: true
-          title: 'chore: manual ${{ github.event.inputs.bump_type }} release'
-          body: |
-            ## Manual Release Request
-
-            This PR was created by a manual workflow trigger to prepare a **${{ github.event.inputs.bump_type }}** release.
-
-            ### Release Details
-            - **Type:** ${{ github.event.inputs.bump_type }}
-            - **Description:** ${{ github.event.inputs.description || 'Manual release' }}
-            - **Triggered by:** @${{ github.actor }}
-
-            ### Next Steps
-            1. Review the changeset in this PR
-            2. Merge this PR to main
-            3. The automated release workflow will create a version PR
-            4. Merge the version PR to publish to npm and create a GitHub release
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'main.yml',
+              ref: 'main',
+              inputs: {
+                release_mode: '${{ github.event.inputs.release_mode }}',
+                bump_type: '${{ github.event.inputs.bump_type }}',
+                description: '${{ github.event.inputs.description }}'
+              }
+            });
+            console.log('Triggered CI/CD workflow with your inputs.');
