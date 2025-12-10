@@ -1,0 +1,5 @@
+
+> test-anywhere@0.8.19 lint
+> eslint .
+
+sh: 1: eslint: not found
