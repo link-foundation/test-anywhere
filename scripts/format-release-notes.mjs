@@ -63,15 +63,18 @@ try {
   }
 
   // Clean up the description:
-  // 1. Remove literal \n sequences (escaped newlines from GitHub API)
+  // 1. Convert literal \n sequences (escaped newlines from GitHub API) to actual newlines
   // 2. Remove any trailing npm package links or markdown that might be there
-  // 3. Normalize whitespace
+  // 3. Normalize whitespace while preserving line breaks
   const cleanDescription = rawDescription
-    .replace(/\\n/g, ' ') // Remove literal \n characters
+    .replace(/\\n/g, '\n') // Convert escaped \n to actual newlines
     .replace(/📦.*$/s, '') // Remove any existing npm package info
     .replace(/---.*$/s, '') // Remove any existing separators and everything after
     .trim()
-    .replace(/\s+/g, ' '); // Normalize all whitespace to single spaces
+    .split('\n') // Split by lines
+    .map((line) => line.trim()) // Trim whitespace from each line
+    .join('\n') // Rejoin with newlines
+    .replace(/\n{3,}/g, '\n\n'); // Normalize excessive blank lines (3+ becomes 2)
 
   // Find the PR that contains this commit (if we have a commit hash)
   let prNumber = null;

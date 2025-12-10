@@ -1,0 +1,37 @@
+[
+  {
+    "conclusion": "success",
+    "createdAt": "2025-12-10T00:10:48Z",
+    "databaseId": 20082679202,
+    "displayTitle": "Merge pull request #99 from link-foundation/issue-96-bc25586e679e",
+    "headSha": "2e9cd90fa864c28b16ccabc6500b37a5e6014487"
+  },
+  {
+    "conclusion": "failure",
+    "createdAt": "2025-12-09T23:53:48Z",
+    "databaseId": 20082354362,
+    "displayTitle": "Merge pull request #98 from link-foundation/issue-96-2bc926c6937c",
+    "headSha": "c3b91bd79f091faae1169b0007edd315b0cbd530"
+  },
+  {
+    "conclusion": "failure",
+    "createdAt": "2025-12-09T23:17:54Z",
+    "databaseId": 20081643394,
+    "displayTitle": "Merge pull request #97 from link-foundation/issue-96-f1eeb37a78b1",
+    "headSha": "f47089cfbfccc98fbb5fe176ccca8dfddcef0366"
+  },
+  {
+    "conclusion": "failure",
+    "createdAt": "2025-12-09T22:38:38Z",
+    "databaseId": 20080802494,
+    "displayTitle": "Merge pull request #95 from link-foundation/issue-94-e27617eba618",
+    "headSha": "851c9221794a547daeb64507ec52c2ff49ef4e55"
+  },
+  {
+    "conclusion": "failure",
+    "createdAt": "2025-12-09T21:35:06Z",
+    "databaseId": 20079255885,
+    "displayTitle": "Manual Release",
+    "headSha": "f3eb67c510cf5b7697320ab405e607ba46c33f17"
+  }
+]
