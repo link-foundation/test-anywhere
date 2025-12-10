@@ -152,7 +152,7 @@ try {
     formattedBody += `\n\n**Related Pull Request:** #${prNumber}`;
   }
 
-  formattedBody += `\n\n---\n\n${npmBadge}\n\n📦 **View on npm:** https://www.npmjs.com/package/${packageName}/v/${versionWithoutV}`;
+  formattedBody += `\n\n---\n\n${npmBadge} (https://www.npmjs.com/package/${packageName}/v/${versionWithoutV})`;
 
   // Update the release using JSON input to properly handle special characters
   const updatePayload = JSON.stringify({ body: formattedBody });
