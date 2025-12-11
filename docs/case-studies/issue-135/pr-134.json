@@ -1,0 +1,109 @@
+{
+  "body": "## Summary\n\nFixes #133 - NPM publish was incorrectly reporting versions as \"already published\" when they didn't exist on npm, causing the script to skip actual publishing.\n\n### Problem\n\nVersions 0.8.43 and 0.8.44 were never published to NPM despite CI workflows showing completion. The script reported:\n```\nVersion 0.8.43 is already published to npm\n```\n\nBut `npm view test-anywhere@0.8.43` returns E404 - version not found.\n\n### Root Cause\n\nThe `publish-to-npm.mjs` script incorrectly assumed that `command-stream`'s `.run({ capture: true })` would throw an error when a command exits with a non-zero code. However, `command-stream` **does not throw errors** - it returns a result object with a `code` property.\n\nWhen `npm view` returned E404 (exit code 1), the try block succeeded instead of throwing, causing the script to incorrectly return early without publishing.\n\n### Solution\n\nChanged from try/catch error handling to explicit exit code checking:\n\n**Before:**\n```javascript\ntry {\n  await $`npm view \"test-anywhere@${currentVersion}\" version`.run({ capture: true });\n  // Version exists - return early\n  return;\n} catch {\n  // Version not found - proceed to publish\n}\n```\n\n**After:**\n```javascript\nconst checkResult = await $`npm view \"test-anywhere@${currentVersion}\" version`.run({ capture: true });\n\nif (checkResult.code === 0) {\n  // Version exists - return early\n  return;\n} else {\n  // Version not found (E404) - proceed to publish\n}\n```\n\n### Changes\n\n- **scripts/publish-to-npm.mjs**: Fixed version check logic to use exit code instead of try/catch\n- **docs/case-studies/issue-133/README.md**: Comprehensive case study with timeline, root cause analysis, and evidence\n- **experiments/test-command-stream.mjs**: Test demonstrating command-stream's error handling behavior\n- **experiments/test-publish-check-fix.mjs**: Validation that the fix works correctly\n\n### Testing\n\n✅ Local CI checks passed:\n- ESLint: Passed\n- Prettier: Passed  \n- File size check: Passed\n- Tests: All passed\n\n✅ Validation experiments:\n- Confirmed `command-stream` returns `{ code: 1 }` without throwing for E404\n- Verified fix correctly identifies existing vs. non-existent versions\n\n### Documentation\n\nCreated comprehensive case study at `docs/case-studies/issue-133/README.md` including:\n- Timeline reconstruction from CI logs (2.3M + 1.4M of log data analyzed)\n- Root cause analysis\n- NPM registry verification\n- Experiment results\n- Solutions comparison\n- Lessons learned\n\n### Next Steps\n\nAfter this PR is merged:\n1. Next release will correctly publish to NPM\n2. Missing versions (0.8.43, 0.8.44) can be published manually if needed, or we can proceed with the next version",
+  "commits": [
+    {
+      "authoredDate": "2025-12-11T21:31:56Z",
+      "authors": [
+        {
+          "email": "drakonard@gmail.com",
+          "id": "MDQ6VXNlcjE0MzE5MDQ=",
+          "login": "konard",
+          "name": "konard"
+        }
+      ],
+      "committedDate": "2025-12-11T21:31:56Z",
+      "messageBody": "Adding CLAUDE.md with task information for AI processing.\nThis file will be removed when the task is complete.\n\nIssue: https://github.com/link-foundation/test-anywhere/issues/133",
+      "messageHeadline": "Initial commit with task details",
+      "oid": "0320af343605e61665b2d8ee34622ea7f9df89b8"
+    },
+    {
+      "authoredDate": "2025-12-11T21:38:23Z",
+      "authors": [
+        {
+          "email": "drakonard@gmail.com",
+          "id": "MDQ6VXNlcjE0MzE5MDQ=",
+          "login": "konard",
+          "name": "konard"
+        },
+        {
+          "email": "noreply@anthropic.com",
+          "id": "MDQ6VXNlcjgxODQ3",
+          "login": "claude",
+          "name": "Claude"
+        }
+      ],
+      "committedDate": "2025-12-11T21:38:23Z",
+      "messageBody": "The script was incorrectly reporting versions as \"already published\" when they\ndidn't exist on npm. This was caused by misunderstanding how command-stream's\n.run({ capture: true }) handles command failures.\n\nRoot cause:\n- command-stream does NOT throw errors when commands exit with non-zero codes\n- Instead, it returns a result object with a 'code' property\n- The script used try/catch, assuming npm view would throw on E404\n- Since no error was thrown, the try block always succeeded\n- This caused the script to return early without publishing\n\nFix:\n- Check checkResult.code === 0 to determine if version exists\n- Exit code 0 = version exists on npm, return early\n- Exit code != 0 = version not found (E404), proceed to publish\n\nImpact:\n- Versions 0.8.43 and 0.8.44 were never published due to this bug\n- Future releases will now correctly publish when versions don't exist\n\nReferences: #133\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
+      "messageHeadline": "Fix npm publish check to properly detect unpublished versions",
+      "oid": "290990fc2a4ffb46abd4c4cbe9b8f7901e05186e"
+    },
+    {
+      "authoredDate": "2025-12-11T21:38:38Z",
+      "authors": [
+        {
+          "email": "drakonard@gmail.com",
+          "id": "MDQ6VXNlcjE0MzE5MDQ=",
+          "login": "konard",
+          "name": "konard"
+        },
+        {
+          "email": "noreply@anthropic.com",
+          "id": "MDQ6VXNlcjgxODQ3",
+          "login": "claude",
+          "name": "Claude"
+        }
+      ],
+      "committedDate": "2025-12-11T21:38:38Z",
+      "messageBody": "Created detailed documentation analyzing the NPM publish failure:\n- Timeline reconstruction from CI logs\n- Root cause analysis of command-stream behavior\n- Evidence from NPM registry verification\n- Experiment validation of the fix\n- Proposed solutions with pros/cons\n- Lessons learned and prevention measures\n\nFiles added:\n- docs/case-studies/issue-133/README.md - Full case study\n- experiments/test-command-stream.mjs - Library behavior test\n- experiments/test-publish-check-fix.mjs - Fix validation\n- ci-logs/ - Downloaded CI logs for analysis\n\nReferences: #133\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
+      "messageHeadline": "Add comprehensive case study for issue #133",
+      "oid": "d28a2367ffeec2ebde066cede39840426f518b9e"
+    },
+    {
+      "authoredDate": "2025-12-11T21:38:59Z",
+      "authors": [
+        {
+          "email": "drakonard@gmail.com",
+          "id": "MDQ6VXNlcjE0MzE5MDQ=",
+          "login": "konard",
+          "name": "konard"
+        }
+      ],
+      "committedDate": "2025-12-11T21:38:59Z",
+      "messageBody": "",
+      "messageHeadline": "Format CLAUDE.md with Prettier",
+      "oid": "4a80bdfa9a17e4ec5763758f299599b90be12231"
+    },
+    {
+      "authoredDate": "2025-12-11T21:40:26Z",
+      "authors": [
+        {
+          "email": "drakonard@gmail.com",
+          "id": "MDQ6VXNlcjE0MzE5MDQ=",
+          "login": "konard",
+          "name": "konard"
+        }
+      ],
+      "committedDate": "2025-12-11T21:40:26Z",
+      "messageBody": "",
+      "messageHeadline": "Add changeset for NPM publish fix",
+      "oid": "051f82c2af53dfead0a91efe750a17419885cc49"
+    },
+    {
+      "authoredDate": "2025-12-11T21:41:41Z",
+      "authors": [
+        {
+          "email": "drakonard@gmail.com",
+          "id": "MDQ6VXNlcjE0MzE5MDQ=",
+          "login": "konard",
+          "name": "konard"
+        }
+      ],
+      "committedDate": "2025-12-11T21:41:41Z",
+      "messageBody": "",
+      "messageHeadline": "Revert: Remove CLAUDE.md changes from initial commit",
+      "oid": "33a87818edd47f58c1f69ee413799f536a034f23"
+    }
+  ],
+  "mergedAt": "2025-12-11T21:55:16Z",
+  "title": "Fix NPM publish check to detect unpublished versions"
+}

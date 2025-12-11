@@ -1,0 +1,5 @@
+{
+  "body": "See screenshot:\n\n\u003cimg width=\"1824\" height=\"1094\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/7a9e9426-9310-42c9-aa49-21ccafbe5994\" /\u003e\n\nSee release here:\nhttps://github.com/link-foundation/test-anywhere/releases/tag/v0.8.37\n\nPlease download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.",
+  "comments": [],
+  "title": "We get strange single quote at the end of markdown release notes"
+}
