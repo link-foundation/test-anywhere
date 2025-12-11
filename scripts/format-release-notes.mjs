@@ -17,6 +17,9 @@
  * - use-m: Dynamic package loading without package.json dependencies
  * - command-stream: Modern shell command execution with streaming support
  * - lino-arguments: Unified configuration from CLI args, env vars, and .lenv files
+ *
+ * Note: Uses --release-version instead of --version to avoid conflict with yargs' built-in --version flag.
+ * See: https://github.com/link-foundation/lino-arguments/issues/13
  */
 
 // Load use-m dynamically
@@ -29,18 +32,19 @@ const { $ } = await use('command-stream');
 const { makeConfig } = await use('lino-arguments');
 
 // Parse CLI arguments using lino-arguments
+// Note: Using --release-version instead of --version to avoid conflict with yargs' built-in --version flag
 const config = makeConfig({
   yargs: ({ yargs, getenv }) =>
     yargs
+      .option('release-version', {
+        type: 'string',
+        default: getenv('VERSION', ''),
+        describe: 'Version number (e.g., v0.8.36)',
+      })
       .option('release-id', {
         type: 'string',
         default: getenv('RELEASE_ID', ''),
         describe: 'GitHub release ID',
-      })
-      .option('version', {
-        type: 'string',
-        default: getenv('VERSION', ''),
-        describe: 'Version number (e.g., v1.0.0)',
       })
       .option('repository', {
         type: 'string',
@@ -54,11 +58,14 @@ const config = makeConfig({
       }),
 });
 
-const { releaseId, version, repository, commitSha: passedCommitSha } = config;
+const releaseId = config.releaseId;
+const version = config.releaseVersion;
+const repository = config.repository;
+const passedCommitSha = config.commitSha;
 
 if (!releaseId || !version || !repository) {
   console.error(
-    'Usage: format-release-notes.mjs --release-id <releaseId> --version <version> --repository <repository> [--commit-sha <sha>]'
+    'Usage: format-release-notes.mjs --release-id <releaseId> --release-version <version> --repository <repository> [--commit-sha <sha>]'
   );
   process.exit(1);
 }
