@@ -2,8 +2,8 @@
 
 /**
  * Format GitHub release notes using the format-release-notes.mjs script
- * Usage: node scripts/format-github-release.mjs --version <version> --repository <repository> --commit-sha <commit_sha>
- *   version: Version number (e.g., 1.0.0)
+ * Usage: node scripts/format-github-release.mjs --release-version <version> --repository <repository> --commit-sha <commit_sha>
+ *   release-version: Version number (e.g., 1.0.0)
  *   repository: GitHub repository (e.g., owner/repo)
  *   commit_sha: Commit SHA for PR detection
  *
@@ -23,10 +23,11 @@ const { $ } = await use('command-stream');
 const { makeConfig } = await use('lino-arguments');
 
 // Parse CLI arguments using lino-arguments
+// Note: Using --release-version instead of --version to avoid conflict with yargs' built-in --version flag
 const config = makeConfig({
   yargs: ({ yargs, getenv }) =>
     yargs
-      .option('version', {
+      .option('release-version', {
         type: 'string',
         default: getenv('VERSION', ''),
         describe: 'Version number (e.g., 1.0.0)',
@@ -43,12 +44,12 @@ const config = makeConfig({
       }),
 });
 
-const { version, repository, commitSha } = config;
+const { releaseVersion: version, repository, commitSha } = config;
 
 if (!version || !repository || !commitSha) {
   console.error('Error: Missing required arguments');
   console.error(
-    'Usage: node scripts/format-github-release.mjs --version <version> --repository <repository> --commit-sha <commit_sha>'
+    'Usage: node scripts/format-github-release.mjs --release-version <version> --repository <repository> --commit-sha <commit_sha>'
   );
   process.exit(1);
 }
