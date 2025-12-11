@@ -1,5 +1,15 @@
 # test-anywhere
 
+## 0.8.34
+
+### Patch Changes
+
+- d9b8f0f: Fix release workflow argument passing
+
+  Update GitHub Actions workflow to use named arguments (--version, --repository, --commit-sha) when calling release scripts, matching the changes made in PR #115 where scripts were updated to use lino-arguments library.
+
+  This fixes the failed release of version 0.8.33 where GitHub Release creation failed due to argument mismatch.
+
 ## 0.8.33
 
 ### Patch Changes
