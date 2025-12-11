@@ -136,7 +136,6 @@ async function main() {
     const oldVersion = await getVersion();
     console.log(`Current version: ${oldVersion}`);
 
-    let commitSuffix;
     if (mode === 'instant') {
       console.log('Running instant version bump...');
       // Run instant version bump script
@@ -145,13 +144,10 @@ async function main() {
       } else {
         await $`node scripts/instant-version-bump.mjs --bump-type "${bumpType}"`;
       }
-      commitSuffix = `Manual ${bumpType} release`;
     } else {
       console.log('Running changeset version...');
       // Run changeset version to bump versions and update CHANGELOG
       await $`npm run changeset:version`;
-      commitSuffix =
-        '\uD83E\uDD16 Generated with [Claude Code](https://claude.com/claude-code)';
     }
 
     // Get new version after bump
@@ -169,8 +165,8 @@ async function main() {
       // Stage all changes (package.json, package-lock.json, CHANGELOG.md, deleted changesets)
       await $`git add -A`;
 
-      // Commit with version number and suffix as message
-      const commitMessage = `${newVersion}\n\n${commitSuffix}`;
+      // Commit with version number as message
+      const commitMessage = newVersion;
       const escapedMessage = commitMessage.replace(/"/g, '\\"');
       await $`git commit -m "${escapedMessage}"`;
 
