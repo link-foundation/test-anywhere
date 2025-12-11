@@ -76,11 +76,13 @@ Usage: node scripts/create-github-release.mjs --version <version> --repository <
 The `lino-arguments` library's `makeConfig` function did not successfully parse command-line arguments in the GitHub Actions environment. Investigation revealed:
 
 1. **The workflow was passing arguments correctly** (verified from CI logs):
+
    ```yaml
    run: node scripts/create-github-release.mjs --version "${{ steps.publish.outputs.published_version }}" --repository "${{ github.repository }}"
    ```
 
 2. **The scripts were using `makeConfig` as documented**:
+
    ```javascript
    const config = makeConfig({
      yargs: ({ yargs, getenv }) =>
