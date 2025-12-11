@@ -183,14 +183,14 @@ try {
   const versionWithoutV = version.replace(/^v/, '');
   const npmBadge = `[![npm version](https://img.shields.io/badge/npm-${versionWithoutV}-blue.svg)](https://www.npmjs.com/package/${packageName}/v/${versionWithoutV})`;
 
-  let formattedBody = `## What's Changed\n\n${cleanDescription}`;
+  let formattedBody = `${cleanDescription}`;
 
   // Add PR link if available
   if (prNumber) {
     formattedBody += `\n\n**Related Pull Request:** #${prNumber}`;
   }
 
-  formattedBody += `\n\n---\n\n${npmBadge} (https://www.npmjs.com/package/${packageName}/v/${versionWithoutV})`;
+  formattedBody += `\n\n---\n\n${npmBadge}`;
 
   // Update the release using JSON input to properly handle special characters
   const updatePayload = JSON.stringify({ body: formattedBody });
