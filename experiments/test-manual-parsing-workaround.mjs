@@ -37,7 +37,9 @@ console.log(`Repository: ${repository}`);
 
 if (!version || !repository) {
   console.error('Error: Missing required arguments');
-  console.error('Usage: node test-manual-parsing-workaround.mjs --version <version> --repository <repository>');
+  console.error(
+    'Usage: node test-manual-parsing-workaround.mjs --version <version> --repository <repository>'
+  );
   process.exit(1);
 }
 
