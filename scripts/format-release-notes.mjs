@@ -114,12 +114,14 @@ try {
 
   // Clean up the description:
   // 1. Convert literal \n sequences (escaped newlines from GitHub API) to actual newlines
-  // 2. Remove leading/trailing quotes (from command-stream shell escaping)
+  // 2. Remove leading/trailing quotes (including escaped quotes from command-stream shell escaping)
   // 3. Remove any trailing npm package links or markdown that might be there
   // 4. Normalize whitespace while preserving line breaks
   const cleanDescription = rawDescription
     .replace(/\\n/g, '\n') // Convert escaped \n to actual newlines
-    .replace(/^['"]|['"]$/g, '') // Remove leading/trailing single or double quotes
+    .replace(/^(\\['"])+/g, '') // Remove leading escaped quotes (e.g., \', \", \'', \'')
+    .replace(/(['"])+$/g, '') // Remove trailing unescaped quotes (e.g., ', ", '', '')
+    .replace(/^(['"])+/g, '') // Remove leading unescaped quotes
     .replace(/📦.*$/s, '') // Remove any existing npm package info
     .replace(/---.*$/s, '') // Remove any existing separators and everything after
     .trim()
