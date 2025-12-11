@@ -41,12 +41,8 @@ const config = makeConfig({
 });
 
 try {
-  const { bumpType, description: descriptionArg } = config;
-  // Remove surrounding quotes that may have been added by shell escaping
-  const description = (descriptionArg || `Manual ${bumpType} release`).replace(
-    /^['"]|['"]$/g,
-    ''
-  );
+  const { bumpType, description } = config;
+  const finalDescription = description || `Manual ${bumpType} release`;
 
   if (!bumpType || !['major', 'minor', 'patch'].includes(bumpType)) {
     console.error(
@@ -80,7 +76,7 @@ try {
 
 ### ${bumpType.charAt(0).toUpperCase() + bumpType.slice(1)} Changes
 
-- ${description}
+- ${finalDescription}
 
 `;
 

@@ -187,12 +187,12 @@ async function main() {
     if (mode === 'instant') {
       console.log('Running instant version bump...');
       // Run instant version bump script
-      // Pass arguments via environment variables to avoid shell escaping issues
-      process.env.BUMP_TYPE = bumpType;
+      // Rely on command-stream's auto-quoting for proper argument handling
       if (description) {
-        process.env.DESCRIPTION = description;
+        await $`node scripts/instant-version-bump.mjs --bump-type ${bumpType} --description ${description}`;
+      } else {
+        await $`node scripts/instant-version-bump.mjs --bump-type ${bumpType}`;
       }
-      await $`node scripts/instant-version-bump.mjs --bump-type "${bumpType}"`;
     } else {
       console.log('Running changeset version...');
       // Run changeset version to bump versions and update CHANGELOG

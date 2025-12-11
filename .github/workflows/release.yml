@@ -230,7 +230,7 @@ jobs:
 
       - name: Version packages and commit to main
         id: version
-        run: node scripts/version-and-commit.mjs --mode instant --bump-type "${{ github.event.inputs.bump_type }}" --description "${{ github.event.inputs.description }}"
+        run: node scripts/version-and-commit.mjs --mode instant --bump-type "${{ github.event.inputs.bump_type }}" --description ${{ github.event.inputs.description }}
 
       - name: Publish to npm
         # Run if version was committed OR if a previous attempt already committed (for re-runs)
