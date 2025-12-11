@@ -42,7 +42,11 @@ const config = makeConfig({
 
 try {
   const { bumpType, description: descriptionArg } = config;
-  const description = descriptionArg || `Manual ${bumpType} release`;
+  // Remove surrounding quotes that may have been added by shell escaping
+  const description = (descriptionArg || `Manual ${bumpType} release`).replace(
+    /^['"]|['"]$/g,
+    ''
+  );
 
   if (!bumpType || !['major', 'minor', 'patch'].includes(bumpType)) {
     console.error(
