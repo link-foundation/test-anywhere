@@ -60,24 +60,28 @@ if (args.length > 0 && !args[0].startsWith('--')) {
   console.error('Error: Positional arguments detected!');
   console.error('Command line arguments:', args);
   console.error('');
-  console.error('This script requires named arguments (--mode, --bump-type, --description).');
+  console.error(
+    'This script requires named arguments (--mode, --bump-type, --description).'
+  );
   console.error('Usage:');
   console.error('  Changeset mode:');
   console.error('    node scripts/version-and-commit.mjs --mode changeset');
   console.error('  Instant mode:');
-  console.error('    node scripts/version-and-commit.mjs --mode instant --bump-type <major|minor|patch> [--description <desc>]');
+  console.error(
+    '    node scripts/version-and-commit.mjs --mode instant --bump-type <major|minor|patch> [--description <desc>]'
+  );
   console.error('');
   console.error('Examples:');
-  console.error('  node scripts/version-and-commit.mjs --mode instant --bump-type patch --description "Fix bug"');
+  console.error(
+    '  node scripts/version-and-commit.mjs --mode instant --bump-type patch --description "Fix bug"'
+  );
   console.error('  node scripts/version-and-commit.mjs --mode changeset');
   process.exit(1);
 }
 
 // Validation: Ensure mode is set correctly
 if (mode !== 'changeset' && mode !== 'instant') {
-  console.error(
-    `Invalid mode: "${mode}". Expected "changeset" or "instant".`
-  );
+  console.error(`Invalid mode: "${mode}". Expected "changeset" or "instant".`);
   console.error('Command line arguments:', process.argv.slice(2));
   process.exit(1);
 }
@@ -85,7 +89,9 @@ if (mode !== 'changeset' && mode !== 'instant') {
 // Validation: Ensure bump type is provided for instant mode
 if (mode === 'instant' && !bumpType) {
   console.error('Error: --bump-type is required for instant mode');
-  console.error('Usage: node scripts/version-and-commit.mjs --mode instant --bump-type <major|minor|patch> [--description <desc>]');
+  console.error(
+    'Usage: node scripts/version-and-commit.mjs --mode instant --bump-type <major|minor|patch> [--description <desc>]'
+  );
   process.exit(1);
 }
 
