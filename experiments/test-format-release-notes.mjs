@@ -27,7 +27,7 @@ try {
   // Run the format script
   console.log('Running format-release-notes.mjs...\n');
   execSync(
-    `node scripts/format-release-notes.mjs "${releaseId}" "${version}" "${repository}"`,
+    `node scripts/format-release-notes.mjs --release-id "${releaseId}" --release-version "${version}" --repository "${repository}"`,
     { stdio: 'inherit' }
   );
 
