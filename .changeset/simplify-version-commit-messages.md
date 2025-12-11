@@ -1,5 +1,5 @@
 ---
-"test-anywhere": patch
+'test-anywhere': patch
 ---
 
 Simplify version bump commit messages
