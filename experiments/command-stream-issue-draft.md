@@ -36,6 +36,7 @@ await $`gh release create v1.0.0 --notes "${releaseNotes}"`;
 **Why this happens:**
 
 In Bash, to include an apostrophe within a single-quoted string, you must:
+
 1. End the current single quotes: `'`
 2. Add an escaped apostrophe: `\'`
 3. Start new single quotes: `'`
@@ -76,18 +77,21 @@ console.log('Actual contains escape sequences:', result.stdout.includes('\\''));
 ```
 
 **Run it:**
+
 ```bash
 chmod +x test-apostrophe-escaping.mjs
 ./test-apostrophe-escaping.mjs
 ```
 
 **Expected output:**
+
 ```
 Original text: didn't
 Shell receives: didn't
 ```
 
 **Actual output:**
+
 ```
 Original text: didn't
 Shell receives: didn'\''t
@@ -130,13 +134,14 @@ await $`gh release create v1.0.0 --notes-file ${tempFile}`;
 import { $, raw } from 'command-stream';
 
 // ⚠️ WARNING: Only for trusted input!
-const trustedText = "Some text with apostrophes";
+const trustedText = 'Some text with apostrophes';
 await $`command ${raw(trustedText)}`;
 ```
 
 ## 🔍 Related Issues
 
 This is related to, but distinct from:
+
 - **#45** - "Automatic quote addition in interpolation causes issues" - about double-quoting
 - **#49** - "Complex shell commands with nested quotes and variables fail" - about nested structures
 - **This issue** - About apostrophes within text being over-escaped for literal storage
@@ -155,6 +160,7 @@ await $`gh release create v1.0.0 --notes ${literal(releaseNotes)}`;
 ```
 
 Implementation would:
+
 - Apply minimal escaping (only what's needed for the argument boundary)
 - Not apply Bash-specific patterns like `'\''`
 
@@ -173,6 +179,7 @@ await $`gh api repos/owner/repo/releases -X POST`.json({
 ### Option 3: Improve documentation
 
 At minimum, document:
+
 - When shell escaping occurs
 - What patterns are used (like `'\''` for apostrophes)
 - Best practices for passing literal text to APIs
@@ -181,12 +188,14 @@ At minimum, document:
 ## 📚 References
 
 **Real-world occurrence:**
+
 - Repository: https://github.com/link-foundation/test-anywhere
 - Issue: https://github.com/link-foundation/test-anywhere/issues/135
 - Fix PR: https://github.com/link-foundation/test-anywhere/pull/136
 - Case study: https://github.com/link-foundation/test-anywhere/blob/issue-135-216d24415677/docs/case-studies/issue-135/README.md
 
 **External resources:**
+
 - [Bash Quoting Documentation](https://ss64.com/bash/syntax-quoting.html)
 - [Escaping Single Quotes in Bash](https://linuxsimply.com/bash-scripting-tutorial/quotes/escape-quotes/single/)
 
@@ -217,6 +226,7 @@ A fix should handle:
 ## 📊 Frequency
 
 This affects any use case where:
+
 - Text is passed to CLI tools that forward to APIs
 - Output is stored/displayed literally (not executed as shell)
 - Common scenarios: GitHub releases, Git commit messages, API calls, database inserts
