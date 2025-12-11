@@ -16,10 +16,10 @@
  * Uses link-foundation libraries:
  * - use-m: Dynamic package loading without package.json dependencies
  * - command-stream: Modern shell command execution with streaming support
+ * - lino-arguments: Unified configuration from CLI args, env vars, and .lenv files
  *
- * Note: Uses manual CLI argument parsing instead of lino-arguments for reliability
- * in CI environments. Supports both --arg=value and --arg value formats, with
- * fallback to environment variables.
+ * Note: Uses --release-version instead of --version to avoid conflict with yargs' built-in --version flag.
+ * See: https://github.com/link-foundation/lino-arguments/issues/13
  */
 
 // Load use-m dynamically
@@ -29,38 +29,43 @@ const { use } = eval(
 
 // Import link-foundation libraries
 const { $ } = await use('command-stream');
+const { makeConfig } = await use('lino-arguments');
 
-// Parse CLI arguments manually for reliability
-// Supports both --arg=value and --arg value formats
-function parseArgs(argv) {
-  const args = {};
-  for (let i = 2; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg.startsWith('--')) {
-      const key = arg.slice(2);
-      if (key.includes('=')) {
-        const [k, v] = key.split('=');
-        args[k] = v;
-      } else if (i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
-        args[key] = argv[i + 1];
-        i++;
-      } else {
-        args[key] = true;
-      }
-    }
-  }
-  return args;
-}
+// Parse CLI arguments using lino-arguments
+// Note: Using --release-version instead of --version to avoid conflict with yargs' built-in --version flag
+const config = makeConfig({
+  yargs: ({ yargs, getenv }) =>
+    yargs
+      .option('release-version', {
+        type: 'string',
+        default: getenv('VERSION', ''),
+        describe: 'Version number (e.g., v0.8.36)',
+      })
+      .option('release-id', {
+        type: 'string',
+        default: getenv('RELEASE_ID', ''),
+        describe: 'GitHub release ID',
+      })
+      .option('repository', {
+        type: 'string',
+        default: getenv('REPOSITORY', ''),
+        describe: 'GitHub repository (e.g., owner/repo)',
+      })
+      .option('commit-sha', {
+        type: 'string',
+        default: getenv('COMMIT_SHA', ''),
+        describe: 'Commit SHA for PR detection',
+      }),
+});
 
-const args = parseArgs(process.argv);
-const releaseId = args['release-id'] || process.env.RELEASE_ID || '';
-const version = args.version || process.env.VERSION || '';
-const repository = args.repository || process.env.REPOSITORY || '';
-const passedCommitSha = args['commit-sha'] || process.env.COMMIT_SHA || '';
+const releaseId = config.releaseId;
+const version = config.releaseVersion;
+const repository = config.repository;
+const passedCommitSha = config.commitSha;
 
 if (!releaseId || !version || !repository) {
   console.error(
-    'Usage: format-release-notes.mjs --release-id <releaseId> --version <version> --repository <repository> [--commit-sha <sha>]'
+    'Usage: format-release-notes.mjs --release-id <releaseId> --release-version <version> --repository <repository> [--commit-sha <sha>]'
   );
   process.exit(1);
 }
