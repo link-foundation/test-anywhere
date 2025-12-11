@@ -2,13 +2,13 @@
 
 ## Executive Summary
 
-**Issue:** Manual instant release workflow triggered via GitHub Actions workflow_dispatch was not creating NPM releases or GitHub releases.
+**Issue:** Manual instant release workflow triggered via GitHub Actions workflow_dispatch was not creating NPM releases or GitHub releases. Additionally, after the initial fix, the main release workflow also broke.
 
 **Root Cause:** Argument parsing mismatch between workflow invocation and script implementation. The workflow passed positional arguments while the script expected named options.
 
-**Impact:** Manual instant releases completely non-functional, requiring a changeset file for any release.
+**Impact:** Manual instant releases completely non-functional, and main changeset-based releases also broken after initial fix attempt.
 
-**Resolution:** Fix argument parsing in version-and-commit.mjs to support positional arguments as documented in workflow.
+**Resolution:** Update workflow files to use named arguments consistently across all jobs (instant release and main release).
 
 ## Timeline of Events
 
@@ -43,6 +43,39 @@
 - No NPM publish was attempted
 - No GitHub release was created
 - Subsequent steps (Publish to npm, Create GitHub Release) were skipped due to conditions
+
+### Second Failure - Main Release Workflow (2025-12-11 15:03:01Z)
+
+After the initial fix (PR #127, commit 84f8dc7) which only fixed the instant release job:
+
+- Run ID: 20137548471
+- Event type: `push` to main branch
+- Commit: 36b92a3 (merge of PR #127)
+
+**Workflow Execution:**
+
+1. **15:02:11Z** - Job "Release" started (triggered by push to main)
+2. **15:02:24Z** - All lint and test jobs passed successfully
+3. **15:04:20Z** - Version packages step invoked with command:
+   ```bash
+   node scripts/version-and-commit.mjs changeset
+   ```
+4. **15:04:22Z** - **Script failed with error:** "Positional arguments detected!"
+5. **15:04:22Z** - Script exited with code 1
+6. **15:04:22Z** - Job failed
+
+**Root Cause of Second Failure:**
+
+The initial fix (commit 84f8dc7) only updated line 233 (instant release job) but **missed line 182** (main release job). The main release job still used positional arguments:
+
+```yaml
+# Line 182 (still broken after initial fix)
+run: node scripts/version-and-commit.mjs changeset
+```
+
+However, the script was updated to **detect and reject** positional arguments (lines 57-80 in version-and-commit.mjs), causing it to now fail fast instead of silently defaulting to wrong behavior.
+
+This is actually an improvement - the script now fails loudly instead of silently doing the wrong thing, but it revealed that the fix was incomplete.
 
 ## Root Cause Analysis
 
@@ -169,10 +202,19 @@ No changes to commit
 
 ### Affected Functionality
 
+**After Initial Issue:**
+
 - ✗ Instant release via workflow_dispatch
 - ✓ Normal changeset-based releases (not affected)
 - ✓ PR changeset validation (not affected)
 - ✓ Automated releases from main (not affected)
+
+**After Initial Fix Attempt (PR #127):**
+
+- ✓ Instant release via workflow_dispatch (fixed)
+- ✗ Normal changeset-based releases (broken by incomplete fix)
+- ✓ PR changeset validation (not affected)
+- ✗ Automated releases from main (broken by incomplete fix)
 
 ### User Impact
 
@@ -285,11 +327,21 @@ Update the workflow to use named arguments. This is the cleanest solution becaus
 
 ## Implementation Plan
 
-1. **Update workflow file** (`.github/workflows/release.yml` line 233)
-2. **Add debug logging** to script to help diagnose similar issues in the future
-3. **Test locally** with both calling patterns
-4. **Verify in CI** with a test run
-5. **Document** the correct calling pattern in script comments
+### Initial Fix (PR #127 - Incomplete)
+
+1. ✓ **Updated workflow file** (`.github/workflows/release.yml` line 233 only)
+2. ✓ **Added debug logging** to script to help diagnose similar issues
+3. ✓ **Added positional argument detection** to fail fast instead of silently
+4. ✓ **Created case study documentation**
+
+**Problem:** Only fixed the instant release job, missed the main release job at line 182.
+
+### Complete Fix (This PR)
+
+1. **Update workflow file** (`.github/workflows/release.yml` line 182) to use named arguments
+2. **Verify both workflow jobs** use consistent calling pattern
+3. **Test the fix** by checking if there are any other positional argument calls
+4. **Update case study** to document the second failure and complete fix
 
 ## Lessons Learned
 
@@ -314,6 +366,9 @@ Update the workflow to use named arguments. This is the cleanest solution becaus
 3. Add schema validation for workflow inputs
 4. Implement pre-commit hooks to catch workflow/script mismatches
 5. Add explicit error message when mode defaults to 'changeset' unexpectedly
+6. **When fixing issues, search for all occurrences** of the same pattern to avoid incomplete fixes
+7. **Use grep/search tools** to find all invocations of a script before declaring the fix complete
+8. **Test all affected workflows** after making changes, not just the one that was reported broken
 
 ## References
 
@@ -330,15 +385,18 @@ Update the workflow to use named arguments. This is the cleanest solution becaus
 - Workflow: `.github/workflows/release.yml`
 - Script: `scripts/version-and-commit.mjs`
 - Helper: `scripts/instant-version-bump.mjs`
-- CI Logs: `ci-logs/manual-release-20136036523.log`
+- CI Logs:
+  - `ci-logs/instant-release-20136036523.log` (initial failure)
+  - `ci-logs/main-release-20137548471.log` (second failure after incomplete fix)
 
 ### Related Issues
 
 - Issue #126: Instant release not working
 
-### Pull Request
+### Pull Requests
 
-- PR #127: Fix instant release argument parsing
+- PR #127: Fix instant release argument parsing (incomplete - only fixed instant release job)
+- PR #128: Complete fix for both instant and main release workflows
 
 ## Appendix
 
