@@ -1,0 +1,82 @@
+[
+  {
+    "conclusion": "success",
+    "createdAt": "2025-12-11T13:19:23Z",
+    "databaseId": 20134467350,
+    "displayTitle": "Merge pull request #123 from link-foundation/issue-122-23b854ca2864",
+    "headSha": "5092e3d1c1d90a1c72c8e9ea0cc3e95ea18950f9",
+    "name": "Checks and release"
+  },
+  {
+    "conclusion": "success",
+    "createdAt": "2025-12-11T08:08:03Z",
+    "databaseId": 20126234140,
+    "displayTitle": "Merge pull request #121 from link-foundation/issue-120-6ce44a92121a",
+    "headSha": "a9c5aff2bad739c5ac961911851de3011454f507",
+    "name": "Checks and release"
+  },
+  {
+    "conclusion": "success",
+    "createdAt": "2025-12-11T01:04:02Z",
+    "databaseId": 20118442309,
+    "displayTitle": "Merge pull request #119 from link-foundation/issue-118-b5737595e339",
+    "headSha": "b5934a3826f40ec1cfae3d5ba24be70d82eb846c",
+    "name": "Checks and release"
+  },
+  {
+    "conclusion": "failure",
+    "createdAt": "2025-12-11T00:01:08Z",
+    "databaseId": 20117213503,
+    "displayTitle": "Merge pull request #117 from link-foundation/issue-116-ac26206c47d4",
+    "headSha": "bf8efd4893c9bd45063872571edadb21f25f4477",
+    "name": "Checks and release"
+  },
+  {
+    "conclusion": "failure",
+    "createdAt": "2025-12-10T23:43:22Z",
+    "databaseId": 20116905860,
+    "displayTitle": "Merge pull request #115 from link-foundation/issue-114-c5c2128c2abf",
+    "headSha": "35ec77fbb3e123e13a853f4a9834d5397bc3a726",
+    "name": "Checks and release"
+  },
+  {
+    "conclusion": "success",
+    "createdAt": "2025-12-10T23:09:20Z",
+    "databaseId": 20116208885,
+    "displayTitle": "Merge pull request #113 from link-foundation/issue-112-b2743890b525",
+    "headSha": "616a812a992c496bda60859d249e519f8c0fcf1b",
+    "name": "Checks and release"
+  },
+  {
+    "conclusion": "success",
+    "createdAt": "2025-12-10T22:49:54Z",
+    "databaseId": 20115776620,
+    "displayTitle": "Rename workflow",
+    "headSha": "be2f24058ba10bb7736220901aee023a8036204f",
+    "name": "Checks and release"
+  },
+  {
+    "conclusion": "success",
+    "createdAt": "2025-12-10T22:41:30Z",
+    "databaseId": 20115592754,
+    "displayTitle": "Merge pull request #111 from link-foundation/changeset-manual-release…",
+    "headSha": "6027d89241ef52b17d4e473790e7663ce62e3ce3",
+    "name": "CI/CD"
+  },
+  {
+    "conclusion": "success",
+    "createdAt": "2025-12-10T22:37:53Z",
+    "databaseId": 20115512261,
+    "displayTitle": "Checks and release",
+    "headSha": "fec24a799a29e414133f65a0e23eede104d363fd",
+    "name": "CI/CD"
+  },
+  {
+    "conclusion": "success",
+    "createdAt": "2025-12-10T22:34:44Z",
+    "databaseId": 20115444178,
+    "displayTitle": "Checks and release",
+    "headSha": "1f662a8b165897e24eb9af5ded2d17f4f5445bf9",
+    "name": "CI/CD"
+  }
+]
