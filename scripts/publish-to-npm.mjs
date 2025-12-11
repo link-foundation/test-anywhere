@@ -72,17 +72,21 @@ async function main() {
     console.log(
       `Checking if version ${currentVersion} is already published...`
     );
-    try {
+    const checkResult =
       await $`npm view "test-anywhere@${currentVersion}" version`.run({
         capture: true,
       });
+
+    // command-stream returns { code: 0 } on success, { code: 1 } on failure (e.g., E404)
+    // Exit code 0 means version exists, non-zero means version not found
+    if (checkResult.code === 0) {
       console.log(`Version ${currentVersion} is already published to npm`);
       setOutput('published', 'true');
       setOutput('published_version', currentVersion);
       setOutput('already_published', 'true');
       return;
-    } catch {
-      // Version not found on npm, proceed with publish
+    } else {
+      // Version not found on npm (E404), proceed with publish
       console.log(
         `Version ${currentVersion} not found on npm, proceeding with publish...`
       );
