@@ -179,7 +179,7 @@ jobs:
       - name: Version packages and commit to main
         if: steps.check_changesets.outputs.has_changesets == 'true'
         id: version
-        run: node scripts/version-and-commit.mjs changeset
+        run: node scripts/version-and-commit.mjs --mode changeset
 
       - name: Publish to npm
         # Run if version was committed OR if a previous attempt already committed (for re-runs)
