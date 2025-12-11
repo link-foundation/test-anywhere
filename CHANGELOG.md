@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.38
+
+### Patch Changes
+
+- 58e9694: fix: remove trailing single quote from release notes markdown
+
 ## 0.8.37
 
 ### Patch Changes
