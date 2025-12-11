@@ -184,7 +184,11 @@ const config = makeConfig({
     }),
 });
 
-assert.strictEqual(config.version, '1.0.0', '--version should parse as "1.0.0"');
+assert.strictEqual(
+  config.version,
+  '1.0.0',
+  '--version should parse as "1.0.0"'
+);
 console.log('✅ Test passed: --version parsed correctly');
 ```
 

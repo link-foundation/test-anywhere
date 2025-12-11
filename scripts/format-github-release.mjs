@@ -2,8 +2,8 @@
 
 /**
  * Format GitHub release notes using the format-release-notes.mjs script
- * Usage: node scripts/format-github-release.mjs --version <version> --repository <repository> --commit-sha <commit_sha>
- *   version: Version number (e.g., 1.0.0)
+ * Usage: node scripts/format-github-release.mjs --release-version <version> --repository <repository> --commit-sha <commit_sha>
+ *   release-version: Version number (e.g., 1.0.0)
  *   repository: GitHub repository (e.g., owner/repo)
  *   commit_sha: Commit SHA for PR detection
  *
@@ -20,38 +20,36 @@ const { use } = eval(
 
 // Import link-foundation libraries
 const { $ } = await use('command-stream');
+const { makeConfig } = await use('lino-arguments');
 
-// Parse CLI arguments manually for reliability
-// Supports both --arg=value and --arg value formats
-function parseArgs(argv) {
-  const args = {};
-  for (let i = 2; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg.startsWith('--')) {
-      const key = arg.slice(2);
-      if (key.includes('=')) {
-        const [k, v] = key.split('=');
-        args[k] = v;
-      } else if (i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
-        args[key] = argv[i + 1];
-        i++;
-      } else {
-        args[key] = true;
-      }
-    }
-  }
-  return args;
-}
+// Parse CLI arguments using lino-arguments
+// Note: Using --release-version instead of --version to avoid conflict with yargs' built-in --version flag
+const config = makeConfig({
+  yargs: ({ yargs, getenv }) =>
+    yargs
+      .option('release-version', {
+        type: 'string',
+        default: getenv('VERSION', ''),
+        describe: 'Version number (e.g., 1.0.0)',
+      })
+      .option('repository', {
+        type: 'string',
+        default: getenv('REPOSITORY', ''),
+        describe: 'GitHub repository (e.g., owner/repo)',
+      })
+      .option('commit-sha', {
+        type: 'string',
+        default: getenv('COMMIT_SHA', ''),
+        describe: 'Commit SHA for PR detection',
+      }),
+});
 
-const args = parseArgs(process.argv);
-const version = args.version || process.env.VERSION || '';
-const repository = args.repository || process.env.REPOSITORY || '';
-const commitSha = args['commit-sha'] || process.env.COMMIT_SHA || '';
+const { releaseVersion: version, repository, commitSha } = config;
 
 if (!version || !repository || !commitSha) {
   console.error('Error: Missing required arguments');
   console.error(
-    'Usage: node scripts/format-github-release.mjs --version <version> --repository <repository> --commit-sha <commit_sha>'
+    'Usage: node scripts/format-github-release.mjs --release-version <version> --repository <repository> --commit-sha <commit_sha>'
   );
   process.exit(1);
 }

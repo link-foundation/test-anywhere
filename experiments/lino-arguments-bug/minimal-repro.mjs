@@ -47,7 +47,9 @@ console.log('');
 if (!config.version || !config.repository) {
   console.error('❌ BUG REPRODUCED: Arguments were not parsed!');
   console.error('Expected: version="1.0.0", repository="owner/repo"');
-  console.error(`Actual: version="${config.version}", repository="${config.repository}"`);
+  console.error(
+    `Actual: version="${config.version}", repository="${config.repository}"`
+  );
   process.exit(1);
 } else {
   console.log('✅ Arguments parsed successfully');

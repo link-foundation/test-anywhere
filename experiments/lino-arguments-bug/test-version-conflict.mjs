@@ -70,5 +70,9 @@ console.log('config3.help:', config3.help);
 console.log();
 
 console.log('=== Summary ===');
-console.log('The --version flag is a built-in yargs flag that conflicts with custom options.');
-console.log('Solution: Disable built-in version handling in makeConfig when user defines custom version option.');
+console.log(
+  'The --version flag is a built-in yargs flag that conflicts with custom options.'
+);
+console.log(
+  'Solution: Disable built-in version handling in makeConfig when user defines custom version option.'
+);
