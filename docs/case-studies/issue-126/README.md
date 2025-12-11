@@ -13,12 +13,14 @@
 ## Timeline of Events
 
 ### Initial State (2025-12-11 14:13:49Z)
+
 - Manual workflow triggered via workflow_dispatch
 - Run ID: 20136036523
 - Event type: `workflow_dispatch` with `release_mode=instant`
 - Inputs: `bump_type=patch`, `description="Test patch release (instant)"`
 
 ### Workflow Execution (2025-12-11 14:13:52Z - 14:14:08Z)
+
 1. **14:13:52Z** - Job "Instant Release" started
 2. **14:13:53Z** - Checkout completed successfully
 3. **14:14:03Z** - Version packages step invoked with command:
@@ -33,6 +35,7 @@
 9. **14:14:08Z** - Job completed successfully (but did nothing)
 
 ### Observed Behavior
+
 - Workflow reported success (exit code 0)
 - No version bump occurred
 - No files were modified
@@ -46,11 +49,13 @@
 ### The Bug
 
 The `scripts/version-and-commit.mjs` script is invoked with **positional arguments**:
+
 ```bash
 node scripts/version-and-commit.mjs instant "patch" "Test patch release (instant)"
 ```
 
 However, the script uses `lino-arguments` (which wraps `yargs`) and is configured to parse **named options**:
+
 ```javascript
 const config = makeConfig({
   yargs: ({ yargs, getenv }) =>
@@ -87,11 +92,13 @@ const config = makeConfig({
 ### Expected vs Actual Script Invocation
 
 **Expected (based on script implementation):**
+
 ```bash
 node scripts/version-and-commit.mjs --mode instant --bump-type patch --description "Test patch release (instant)"
 ```
 
 **Actual (from workflow):**
+
 ```bash
 node scripts/version-and-commit.mjs instant "patch" "Test patch release (instant)"
 ```
@@ -105,6 +112,7 @@ Without explicit positional argument configuration, yargs treats all non-flag ar
 ### Workflow File Analysis
 
 From `.github/workflows/release.yml` line 233:
+
 ```yaml
 - name: Version packages and commit to main
   id: version
@@ -112,6 +120,7 @@ From `.github/workflows/release.yml` line 233:
 ```
 
 The workflow comment at line 205-204 states:
+
 ```yaml
 # Manual Instant Release - triggered via workflow_dispatch with instant mode
 # This job is in release.yml because npm trusted publishing
@@ -125,22 +134,26 @@ The workflow was designed to work with positional arguments, but the script impl
 ### Key Log Excerpts
 
 **Workflow invocation (line 1203):**
+
 ```
 node scripts/version-and-commit.mjs instant "patch" "Test patch release (instant)"
 ```
 
 **Script output (line 2647-2648):**
+
 ```
 Current version: 0.8.38
 Running changeset version...
 ```
 
 **Changeset warning (line 3288):**
+
 ```
 🦋  warn No unreleased changesets found, exiting.
 ```
 
 **Final outcome (line 4284 and later):**
+
 ```
 New version: 0.8.38
 No changes to commit
@@ -149,17 +162,20 @@ No changes to commit
 ## Impact Assessment
 
 ### Severity: High
+
 - Complete failure of instant release functionality
 - No workaround available except manual releases or creating fake changeset files
 - Silent failure - workflow reports success but does nothing
 
 ### Affected Functionality
+
 - ✗ Instant release via workflow_dispatch
 - ✓ Normal changeset-based releases (not affected)
 - ✓ PR changeset validation (not affected)
 - ✓ Automated releases from main (not affected)
 
 ### User Impact
+
 - Manual instant releases were intended for emergency patches or quick releases
 - Lack of functionality forced users to go through the full changeset PR workflow
 - Confusing UX - workflow succeeds but nothing happens
@@ -169,7 +185,9 @@ No changes to commit
 ### Fix Options
 
 #### Option 1: Update Script to Parse Positional Arguments (Recommended)
+
 Modify `scripts/version-and-commit.mjs` to accept positional arguments:
+
 ```javascript
 const config = makeConfig({
   yargs: ({ yargs, getenv }) =>
@@ -194,31 +212,39 @@ const config = makeConfig({
 ```
 
 **Pros:**
+
 - Matches existing workflow call pattern
 - No changes needed to workflow file
 - Maintains backward compatibility if anyone is calling with named options
 
 **Cons:**
+
 - Requires understanding of yargs positional argument handling
 - lino-arguments may not expose positional argument configuration
 
 #### Option 2: Update Workflow to Use Named Arguments
+
 Modify `.github/workflows/release.yml` line 233:
+
 ```yaml
 run: node scripts/version-and-commit.mjs --mode instant --bump-type "${{ github.event.inputs.bump_type }}" --description "${{ github.event.inputs.description }}"
 ```
 
 **Pros:**
+
 - Script already supports named arguments
 - Clearer intent - readers can see what each argument represents
 - More robust - order doesn't matter
 
 **Cons:**
+
 - Changes workflow file
 - Must update documentation
 
 #### Option 3: Manual Argument Parsing in Script
+
 Parse `process.argv` directly before using lino-arguments:
+
 ```javascript
 // Check if positional arguments were provided
 const args = process.argv.slice(2);
@@ -227,25 +253,31 @@ if (args.length > 0 && !args[0].startsWith('--')) {
   process.argv = [
     process.argv[0],
     process.argv[1],
-    '--mode', args[0],
-    '--bump-type', args[1] || '',
-    '--description', args[2] || ''
+    '--mode',
+    args[0],
+    '--bump-type',
+    args[1] || '',
+    '--description',
+    args[2] || '',
   ];
 }
 ```
 
 **Pros:**
+
 - Supports both calling patterns
 - No workflow changes needed
 - Backward compatible
 
 **Cons:**
+
 - Manual parsing is error-prone
 - Mixing approaches is not ideal
 
 ### Recommended Solution: Option 2
 
 Update the workflow to use named arguments. This is the cleanest solution because:
+
 1. The script already fully supports this pattern
 2. It's more maintainable and self-documenting
 3. It's explicit about what each argument represents
@@ -262,11 +294,13 @@ Update the workflow to use named arguments. This is the cleanest solution becaus
 ## Lessons Learned
 
 ### What Went Well
+
 - Workflow structure was well-designed with proper separation of concerns
 - Error handling in changeset version prevented catastrophic failure
 - CI logs were detailed enough to diagnose the issue
 
 ### What Could Be Improved
+
 - **Argument validation**: Script should validate required arguments and fail fast if missing
 - **Explicit error messages**: Script should detect when running in instant mode but arguments are missing
 - **Documentation**: Script usage comment should match actual calling pattern in workflow
@@ -274,6 +308,7 @@ Update the workflow to use named arguments. This is the cleanest solution becaus
 - **Debug logging**: Add verbose mode to help diagnose argument parsing issues
 
 ### Preventative Measures
+
 1. Add unit tests for script argument parsing
 2. Add integration tests that invoke scripts exactly as workflows do
 3. Add schema validation for workflow inputs
@@ -283,6 +318,7 @@ Update the workflow to use named arguments. This is the cleanest solution becaus
 ## References
 
 ### External Resources
+
 - [Changesets Documentation](https://github.com/changesets/changesets)
 - [@changesets/cli on npm](https://www.npmjs.com/package/@changesets/cli)
 - [Frontend Handbook | Changesets](https://infinum.com/handbook/frontend/changesets)
@@ -290,24 +326,30 @@ Update the workflow to use named arguments. This is the cleanest solution becaus
 - [Complete Guide: Publishing NPM Packages with Changesets](https://dtech.vision/guides/npm-changesets-complete-guide/)
 
 ### Internal Files
+
 - Workflow: `.github/workflows/release.yml`
 - Script: `scripts/version-and-commit.mjs`
 - Helper: `scripts/instant-version-bump.mjs`
 - CI Logs: `ci-logs/manual-release-20136036523.log`
 
 ### Related Issues
+
 - Issue #126: Instant release not working
 
 ### Pull Request
+
 - PR #127: Fix instant release argument parsing
 
 ## Appendix
 
 ### Full CI Log
+
 See: `ci-logs/manual-release-20136036523.log`
 
 ### Workflow Configuration
+
 See: `.github/workflows/release.yml` lines 205-251
 
 ### Script Implementation
+
 See: `scripts/version-and-commit.mjs` lines 1-189
