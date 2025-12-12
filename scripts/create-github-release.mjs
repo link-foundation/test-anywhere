@@ -73,9 +73,19 @@ try {
     releaseNotes = `Release ${version}`;
   }
 
-  // Create release using gh CLI
-  const escapedNotes = releaseNotes.replace(/"/g, '\\"');
-  await $`gh release create "${tag}" --title "${version}" --notes "${escapedNotes}" --repo "${repository}"`;
+  // Create release using GitHub API with JSON input
+  // This avoids shell escaping issues that occur when passing text via command-line arguments
+  // (Previously caused apostrophes like "didn't" to appear as "didn'''" in releases)
+  // See: docs/case-studies/issue-135 for detailed analysis
+  const payload = JSON.stringify({
+    tag_name: tag,
+    name: version,
+    body: releaseNotes,
+  });
+
+  await $`gh api repos/${repository}/releases -X POST --input -`.run({
+    stdin: payload,
+  });
 
   console.log(`\u2705 Created GitHub release: ${tag}`);
 } catch (error) {
