@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.48
+
+### Patch Changes
+
+- bafb1a8: Test patch release (changeset pull request)
+
 ## 0.8.47
 
 ### Patch Changes
