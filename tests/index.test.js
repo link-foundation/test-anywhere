@@ -74,7 +74,7 @@ test('assertion failures throw errors', () => {
   let errorThrown = false;
   try {
     assert.ok(false);
-  } catch (_e) {
+  } catch {
     errorThrown = true;
   }
   assert.ok(errorThrown, 'assert.ok(false) should throw an error');
@@ -100,7 +100,7 @@ test('deepEqual - handles null and undefined', () => {
   let threw = false;
   try {
     assert.deepEqual(null, undefined);
-  } catch (_e) {
+  } catch {
     threw = true;
   }
   assert.ok(threw, 'null and undefined should not be deeply equal');
@@ -113,7 +113,7 @@ test('deepEqual - handles undefined in objects', () => {
   let threw = false;
   try {
     assert.deepEqual({ x: undefined }, {});
-  } catch (_e) {
+  } catch {
     threw = true;
   }
   assert.ok(
@@ -132,7 +132,7 @@ test('deepEqual - handles Date objects', () => {
   let threw = false;
   try {
     assert.deepEqual(date1, date3);
-  } catch (_e) {
+  } catch {
     threw = true;
   }
   assert.ok(threw, 'different dates should not be equal');
@@ -159,7 +159,7 @@ test('deepEqual - arrays with different lengths', () => {
   let threw = false;
   try {
     assert.deepEqual([1, 2, 3], [1, 2]);
-  } catch (_e) {
+  } catch {
     threw = true;
   }
   assert.ok(threw, 'arrays with different lengths should not be equal');
@@ -176,7 +176,7 @@ test('notEqual - fails for equal values', () => {
   let threw = false;
   try {
     assert.notEqual(1, 1);
-  } catch (_e) {
+  } catch {
     threw = true;
   }
   assert.ok(threw, 'notEqual should throw for equal values');
@@ -191,7 +191,7 @@ test('notDeepEqual - fails for deeply equal values', () => {
   let threw = false;
   try {
     assert.notDeepEqual({ a: 1, b: 2 }, { b: 2, a: 1 });
-  } catch (_e) {
+  } catch {
     threw = true;
   }
   assert.ok(threw, 'notDeepEqual should throw for deeply equal values');
@@ -211,7 +211,7 @@ test('throwsAsync - fails when async function does not throw', async () => {
   let threw = false;
   try {
     await assert.throwsAsync(async () => 'success');
-  } catch (_e) {
+  } catch {
     threw = true;
   }
   assert.ok(threw, 'throwsAsync should throw when function does not throw');
@@ -241,7 +241,7 @@ test('match - fails when string does not match', () => {
   let threw = false;
   try {
     assert.match('hello', /xyz/);
-  } catch (_e) {
+  } catch {
     threw = true;
   }
   assert.ok(threw, 'match should throw when string does not match');
@@ -261,7 +261,7 @@ test('includes - fails when value not in array', () => {
   let threw = false;
   try {
     assert.includes([1, 2, 3], 4);
-  } catch (_e) {
+  } catch {
     threw = true;
   }
   assert.ok(threw, 'includes should throw when value not in array');
@@ -271,7 +271,7 @@ test('includes - fails when substring not in string', () => {
   let threw = false;
   try {
     assert.includes('hello', 'xyz');
-  } catch (_e) {
+  } catch {
     threw = true;
   }
   assert.ok(threw, 'includes should throw when substring not in string');

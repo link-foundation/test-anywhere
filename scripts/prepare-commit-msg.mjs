@@ -54,7 +54,7 @@ try {
       .split('\n')
       .filter((file) => file.match(/^(src\/|package\.json)/))
       .filter(Boolean);
-  } catch (_error) {
+  } catch {
     // No staged files
     modifiedSrc = [];
   }
