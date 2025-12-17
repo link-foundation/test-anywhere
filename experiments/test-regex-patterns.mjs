@@ -94,7 +94,7 @@ const changesPattern =
   /### (Major|Minor|Patch) Changes\s*\n\s*-\s+(?:([a-f0-9]+):\s+)?(.+?)$/s;
 
 console.log('🧪 Testing regex pattern for all changeset types\n');
-console.log('=' .repeat(70));
+console.log('='.repeat(70));
 
 let passed = 0;
 let failed = 0;
@@ -149,7 +149,9 @@ for (const testCase of testCases) {
     console.log('❌ FAILED');
     console.log('\n   Expected:');
     console.log(`     Change Type: ${testCase.expected.changeType}`);
-    console.log(`     Commit Hash: ${testCase.expected.commitHash || '(none)'}`);
+    console.log(
+      `     Commit Hash: ${testCase.expected.commitHash || '(none)'}`
+    );
     console.log(`     Description: ${testCase.expected.description}`);
     console.log('\n   Got:');
     console.log(`     Change Type: ${results.changeType}`);
@@ -159,7 +161,7 @@ for (const testCase of testCases) {
   }
 }
 
-console.log('\n' + '='.repeat(70));
+console.log(`\n${'='.repeat(70)}`);
 console.log(`\n📊 Results: ${passed} passed, ${failed} failed`);
 
 if (failed === 0) {
