@@ -552,6 +552,27 @@ This means you get the full performance and features of each runtime's native te
 
 [Unlicense](LICENSE) - Public Domain
 
+## Code Quality
+
+This project maintains strict code quality standards to ensure clean and maintainable code:
+
+### No Unused Variables
+
+The `no-unused-vars` ESLint rule is enforced **without any exceptions**. This means:
+
+- All declared variables must be used
+- All function parameters must be used
+- All caught error variables must be used
+- **No ignore patterns** (like `^_` prefixes) are allowed
+
+This strict policy helps maintain code clarity and prevents dead code from accumulating. If you need to acknowledge a parameter but don't use it, consider refactoring the code instead of working around the lint rule.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+Before submitting, ensure your code passes all linting checks:
+
+```bash
+npm run lint
+```

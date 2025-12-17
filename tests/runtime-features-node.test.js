@@ -207,7 +207,7 @@ describe('Node: it() alias', () => {
 });
 
 // Test subtests (Node.js specific feature)
-test('Node: subtests work', async (_t) => {
+test('Node: subtests work', async () => {
   // Note: This uses Node's native subtest feature if available
   // Our wrapper should pass through the test context
   assert.ok(true, 'parent test runs');

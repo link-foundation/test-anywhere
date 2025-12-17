@@ -729,7 +729,7 @@ export async function assertRejects(fn, message) {
   let thrown = false;
   try {
     await fn();
-  } catch (_error) {
+  } catch {
     thrown = true;
   }
   if (!thrown) {
@@ -825,7 +825,7 @@ export const assert = {
     let thrown = false;
     try {
       await fn();
-    } catch (_error) {
+    } catch {
       thrown = true;
     }
     if (!thrown) {

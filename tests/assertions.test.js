@@ -355,7 +355,7 @@ describe('Deno-style assertion API', () => {
       await assertRejects(async () => {
         // Does not throw
       });
-    } catch (_error) {
+    } catch {
       caught = true;
     }
     assert.ok(caught, 'assertRejects should throw if function does not reject');
