@@ -1,5 +1,5 @@
 ---
-"test-anywhere": patch
+'test-anywhere': patch
 ---
 
 Fix release formatting script to handle Major/Minor/Patch changes
