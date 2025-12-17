@@ -1,5 +1,11 @@
 # test-anywhere
 
+## 0.8.50
+
+### Patch Changes
+
+- a9f2bb6: Enforce strict no-unused-vars ESLint rule without exceptions
+
 ## 0.8.49
 
 ### Patch Changes
