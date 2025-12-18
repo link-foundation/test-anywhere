@@ -542,6 +542,71 @@ Check out the [examples](./examples) directory for complete working examples:
 
 This means you get the full performance and features of each runtime's native testing implementation while maintaining a consistent API across all platforms.
 
+## Code Coverage
+
+All three runtimes support code coverage reporting through their native test runners. Here's how to enable coverage for each:
+
+### Bun
+
+```bash
+bun test --coverage
+```
+
+Bun displays a coverage report directly in the terminal. You can also configure coverage in `bunfig.toml`:
+
+```toml
+[test]
+coverage = true
+coverageReporter = ["text", "lcov"]
+coverageThreshold = 0.8
+```
+
+### Deno
+
+Deno uses a two-step process: collect coverage data, then generate a report:
+
+```bash
+# Collect coverage data
+deno test --coverage=cov_profile --allow-read
+
+# View coverage summary
+deno coverage cov_profile
+
+# Generate LCOV report for CI tools
+deno coverage cov_profile --lcov --output=coverage.lcov
+
+# Generate HTML report
+deno coverage cov_profile --html
+```
+
+### Node.js
+
+Node.js provides experimental coverage support:
+
+```bash
+node --test --experimental-test-coverage tests/
+```
+
+You can also set coverage thresholds (Node.js 22.8.0+):
+
+```bash
+node --test --experimental-test-coverage \
+  --test-coverage-branches=80 \
+  --test-coverage-functions=80 \
+  --test-coverage-lines=80 \
+  tests/
+```
+
+To generate an LCOV report:
+
+```bash
+node --test --experimental-test-coverage \
+  --test-reporter=lcov --test-reporter-destination=coverage.lcov \
+  tests/
+```
+
+For more details on coverage options, see the [Native Test Frameworks Comparison](./NATIVE_TEST_FRAMEWORKS_COMPARISON.md#6-coverage--reporting).
+
 ## Requirements
 
 - **Node.js**: 20.0.0 or higher (for native test runner support)
