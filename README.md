@@ -542,6 +542,197 @@ Check out the [examples](./examples) directory for complete working examples:
 
 This means you get the full performance and features of each runtime's native testing implementation while maintaining a consistent API across all platforms.
 
+## Code Coverage
+
+All three runtimes support code coverage reporting through their native test runners. This library provides convenient npm scripts to run coverage for each runtime.
+
+### Quick Start
+
+```bash
+# Run coverage with default runtime (Node.js)
+npm run coverage
+
+# Run coverage for specific runtimes
+npm run coverage:node
+npm run coverage:bun
+npm run coverage:deno
+
+# Run coverage with 99% threshold enforcement
+npm run coverage:check          # Node.js with thresholds
+npm run coverage:check:node     # Node.js with thresholds
+npm run coverage:check:bun      # Bun with thresholds (via bunfig.toml)
+npm run coverage:check:deno     # Deno with thresholds (via script)
+```
+
+### Enforcing Coverage Thresholds
+
+For CI/CD pipelines, you can enforce minimum coverage thresholds. Default thresholds vary by runtime due to differences in how coverage is calculated:
+
+- **Node.js & Deno**: 80% (includes test file coverage)
+- **Bun**: 75% (reports src/ files only, excludes test files)
+
+These baselines account for runtime-specific code paths that cannot all be tested in a single runtime environment.
+
+#### Node.js
+
+Use the provided script for threshold enforcement:
+
+```bash
+# Default 80% threshold
+node scripts/check-node-coverage.mjs
+
+# Custom threshold
+node scripts/check-node-coverage.mjs --threshold=90
+
+# Or via environment variable
+COVERAGE_THRESHOLD=90 node scripts/check-node-coverage.mjs
+```
+
+Node.js 22.8.0+ also supports native threshold flags:
+
+```bash
+node --test --experimental-test-coverage \
+  --test-coverage-lines=80 \
+  --test-coverage-branches=80 \
+  --test-coverage-functions=80 \
+  tests/
+```
+
+#### Bun
+
+Use the provided script for reliable threshold enforcement:
+
+```bash
+# Default 75% threshold
+node scripts/check-bun-coverage.mjs
+
+# Custom threshold
+node scripts/check-bun-coverage.mjs --threshold=90
+
+# Or via environment variable
+COVERAGE_THRESHOLD=90 node scripts/check-bun-coverage.mjs
+```
+
+You can also configure thresholds in `bunfig.toml`:
+
+```toml
+[test]
+coverageThreshold = { line = 0.75, function = 0.75, statement = 0.75 }
+coverageReporter = ["text", "lcov"]
+coverageDir = "coverage"
+```
+
+Run with: `bun test --coverage`
+
+#### Deno
+
+Use the provided script for threshold enforcement:
+
+```bash
+# Default 80% threshold
+node scripts/check-deno-coverage.mjs
+
+# Custom threshold
+node scripts/check-deno-coverage.mjs --threshold=90
+
+# Or via environment variable
+COVERAGE_THRESHOLD=90 node scripts/check-deno-coverage.mjs
+```
+
+### Programmatic Coverage Check
+
+For users who need to ensure specific coverage thresholds programmatically (e.g., in a pre-commit hook or custom CI script):
+
+```javascript
+import { execSync } from 'node:child_process';
+
+const THRESHOLD = 80;
+
+// Node.js
+try {
+  execSync(
+    `node --test --experimental-test-coverage --test-coverage-lines=${THRESHOLD} --test-coverage-branches=${THRESHOLD} --test-coverage-functions=${THRESHOLD} tests/`,
+    { stdio: 'inherit' }
+  );
+  console.log('Coverage check passed!');
+} catch {
+  console.error('Coverage below threshold');
+  process.exit(1);
+}
+```
+
+### Generating LCOV Reports
+
+For integration with coverage reporting tools (Codecov, Coveralls, etc.):
+
+#### Node.js
+
+```bash
+node --test --experimental-test-coverage \
+  --test-reporter=lcov --test-reporter-destination=coverage.lcov \
+  tests/
+```
+
+#### Bun
+
+```bash
+bun test --coverage --coverage-reporter=lcov
+# Output: coverage/lcov.info
+```
+
+#### Deno
+
+```bash
+deno test --coverage=coverage --allow-read
+deno coverage coverage --lcov --output=coverage.lcov
+```
+
+### Detailed Runtime Coverage Options
+
+#### Bun
+
+```bash
+bun test --coverage
+```
+
+Bun displays a coverage report directly in the terminal. Full configuration in `bunfig.toml`:
+
+```toml
+[test]
+coverage = true
+coverageReporter = ["text", "lcov"]
+coverageThreshold = { line = 0.75, function = 0.75, statement = 0.75 }
+coverageDir = "coverage"
+```
+
+#### Deno
+
+Deno uses a two-step process: collect coverage data, then generate a report:
+
+```bash
+# Collect coverage data
+deno test --coverage=cov_profile --allow-read
+
+# View coverage summary
+deno coverage cov_profile
+
+# Generate LCOV report for CI tools
+deno coverage cov_profile --lcov --output=coverage.lcov
+
+# Generate HTML report
+deno coverage cov_profile --html
+```
+
+#### Node.js
+
+Node.js provides experimental coverage support:
+
+```bash
+node --test --experimental-test-coverage tests/
+```
+
+For more details on coverage options, see the [Native Test Frameworks Comparison](./NATIVE_TEST_FRAMEWORKS_COMPARISON.md#6-coverage--reporting).
+
 ## Requirements
 
 - **Node.js**: 20.0.0 or higher (for native test runner support)
