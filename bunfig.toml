@@ -1,3 +1,12 @@
 # Bun configuration
 # Note: Bun doesn't support excluding test files directly in config
 # Use CLI flags or file naming patterns instead
+
+[test]
+# Coverage configuration for CI threshold enforcement
+# To enable coverage with threshold checking, use: bun test --coverage
+# Default coverage threshold is set to 75% for lines, functions, and statements
+# Bun reports coverage only for src/ files, so thresholds are lower than Node.js
+coverageThreshold = { line = 0.75, function = 0.75, statement = 0.75 }
+coverageReporter = ["text", "lcov"]
+coverageDir = "coverage"
