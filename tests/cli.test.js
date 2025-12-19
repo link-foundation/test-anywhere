@@ -2,10 +2,12 @@
  * CLI tests for test-anywhere
  * Tests the CLI entry point functionality including --help, --version, --verbose,
  * and the two syntax variants for option splitting.
+ *
+ * Note: These tests use execSync with the `node` command and are designed
+ * to run on Node.js. On other runtimes (Bun, Deno), the tests will be skipped.
  */
 
-import { test, describe, assert } from '../src/index.js';
-import { execSync } from 'node:child_process';
+import { test, describe, assert, getRuntime } from '../src/index.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,10 +15,25 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const CLI_PATH = join(__dirname, '..', 'bin', 'test-anywhere.js');
 
+// Check if we're running on Node.js
+const isNode = getRuntime() === 'node';
+
+// Import execSync only on Node.js
+let execSync = null;
+if (isNode) {
+  const childProcess = await import('node:child_process');
+  execSync = childProcess.execSync;
+}
+
 /**
  * Helper to run CLI command and capture output
+ * Only works on Node.js runtime
  */
 function runCli(args = [], options = {}) {
+  if (!isNode || !execSync) {
+    return { stdout: '', stderr: '', exitCode: 1, skipped: true };
+  }
+
   const fullArgs = ['node', CLI_PATH, ...args];
   const command = fullArgs.join(' ');
 
@@ -26,18 +43,26 @@ function runCli(args = [], options = {}) {
       timeout: 10000,
       ...options,
     });
-    return { stdout: output, exitCode: 0 };
+    return { stdout: output, exitCode: 0, skipped: false };
   } catch (error) {
     return {
       stdout: error.stdout || '',
       stderr: error.stderr || '',
       exitCode: error.status || 1,
+      skipped: false,
     };
   }
 }
 
-describe('CLI --version option', () => {
-  test('--version outputs version number', () => {
+// Skip message for non-Node runtimes
+const skipMsg = isNode ? '' : ' (skipped - Node.js only)';
+
+describe(`CLI --version option${skipMsg}`, () => {
+  test(`--version outputs version number${skipMsg}`, () => {
+    if (!isNode) {
+      assert.ok(true, 'Skipping on non-Node runtime');
+      return;
+    }
     const result = runCli(['--version']);
     assert.equal(result.exitCode, 0, 'exit code should be 0');
     // Version should be a semver-like string
@@ -48,7 +73,11 @@ describe('CLI --version option', () => {
     );
   });
 
-  test('-v outputs version number', () => {
+  test(`-v outputs version number${skipMsg}`, () => {
+    if (!isNode) {
+      assert.ok(true, 'Skipping on non-Node runtime');
+      return;
+    }
     const result = runCli(['-v']);
     assert.equal(result.exitCode, 0, 'exit code should be 0');
     assert.match(
@@ -59,8 +88,12 @@ describe('CLI --version option', () => {
   });
 });
 
-describe('CLI --help option', () => {
-  test('--help outputs help message', () => {
+describe(`CLI --help option${skipMsg}`, () => {
+  test(`--help outputs help message${skipMsg}`, () => {
+    if (!isNode) {
+      assert.ok(true, 'Skipping on non-Node runtime');
+      return;
+    }
     const result = runCli(['--help']);
     assert.equal(result.exitCode, 0, 'exit code should be 0');
     assert.ok(
@@ -82,7 +115,11 @@ describe('CLI --help option', () => {
     );
   });
 
-  test('-h outputs help message', () => {
+  test(`-h outputs help message${skipMsg}`, () => {
+    if (!isNode) {
+      assert.ok(true, 'Skipping on non-Node runtime');
+      return;
+    }
     const result = runCli(['-h']);
     assert.equal(result.exitCode, 0, 'exit code should be 0');
     assert.ok(
@@ -91,7 +128,11 @@ describe('CLI --help option', () => {
     );
   });
 
-  test('help message documents double-dash syntax', () => {
+  test(`help message documents double-dash syntax${skipMsg}`, () => {
+    if (!isNode) {
+      assert.ok(true, 'Skipping on non-Node runtime');
+      return;
+    }
     const result = runCli(['--help']);
     assert.ok(
       result.stdout.includes('--'),
@@ -103,7 +144,11 @@ describe('CLI --help option', () => {
     );
   });
 
-  test('help message documents command keyword syntax', () => {
+  test(`help message documents command keyword syntax${skipMsg}`, () => {
+    if (!isNode) {
+      assert.ok(true, 'Skipping on non-Node runtime');
+      return;
+    }
     const result = runCli(['--help']);
     assert.ok(
       result.stdout.includes('command'),
@@ -115,7 +160,11 @@ describe('CLI --help option', () => {
     );
   });
 
-  test('help message documents runtime priority', () => {
+  test(`help message documents runtime priority${skipMsg}`, () => {
+    if (!isNode) {
+      assert.ok(true, 'Skipping on non-Node runtime');
+      return;
+    }
     const result = runCli(['--help']);
     assert.ok(
       result.stdout.includes('RUNTIME PRIORITY:'),
@@ -128,8 +177,12 @@ describe('CLI --help option', () => {
   });
 });
 
-describe('CLI --verbose option', () => {
-  test('--verbose is documented in help', () => {
+describe(`CLI --verbose option${skipMsg}`, () => {
+  test(`--verbose is documented in help${skipMsg}`, () => {
+    if (!isNode) {
+      assert.ok(true, 'Skipping on non-Node runtime');
+      return;
+    }
     const result = runCli(['--help']);
     assert.ok(
       result.stdout.includes('--verbose'),
@@ -142,8 +195,12 @@ describe('CLI --verbose option', () => {
   });
 });
 
-describe('CLI option splitting syntax', () => {
-  test('help explains that only one separator can be used', () => {
+describe(`CLI option splitting syntax${skipMsg}`, () => {
+  test(`help explains that only one separator can be used${skipMsg}`, () => {
+    if (!isNode) {
+      assert.ok(true, 'Skipping on non-Node runtime');
+      return;
+    }
     const result = runCli(['--help']);
     assert.ok(
       result.stdout.includes('Use only ONE separator style'),
@@ -151,7 +208,11 @@ describe('CLI option splitting syntax', () => {
     );
   });
 
-  test('help shows double-dash example', () => {
+  test(`help shows double-dash example${skipMsg}`, () => {
+    if (!isNode) {
+      assert.ok(true, 'Skipping on non-Node runtime');
+      return;
+    }
     const result = runCli(['--help']);
     assert.ok(
       result.stdout.includes('test-anywhere --verbose -- --test-timeout=5000'),
@@ -159,7 +220,11 @@ describe('CLI option splitting syntax', () => {
     );
   });
 
-  test('help shows command keyword example', () => {
+  test(`help shows command keyword example${skipMsg}`, () => {
+    if (!isNode) {
+      assert.ok(true, 'Skipping on non-Node runtime');
+      return;
+    }
     const result = runCli(['--help']);
     assert.ok(
       result.stdout.includes(
@@ -170,8 +235,12 @@ describe('CLI option splitting syntax', () => {
   });
 });
 
-describe('CLI documentation link', () => {
-  test('help includes documentation link', () => {
+describe(`CLI documentation link${skipMsg}`, () => {
+  test(`help includes documentation link${skipMsg}`, () => {
+    if (!isNode) {
+      assert.ok(true, 'Skipping on non-Node runtime');
+      return;
+    }
     const result = runCli(['--help']);
     assert.ok(
       result.stdout.includes(
