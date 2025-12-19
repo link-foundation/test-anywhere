@@ -2,9 +2,50 @@
 
 This document describes the functional requirements for the test-anywhere CLI tool.
 
-## CLI Options Splitting
+## CLI Entry Point
 
 **Issue**: [#144](https://github.com/link-foundation/test-anywhere/issues/144)
+
+### Wrapper Options
+
+The CLI supports the following wrapper options:
+
+| Option      | Short | Description                                                  |
+| ----------- | ----- | ------------------------------------------------------------ |
+| `--help`    | `-h`  | Display help message with usage information                  |
+| `--version` | `-v`  | Display the package version                                  |
+| `--verbose` |       | Enable verbose output (shows runtime detection and commands) |
+
+### Runtime Priority (Bun-first)
+
+The CLI automatically detects and uses available runtimes in the following priority order:
+
+1. **Bun** (preferred) - Fastest startup time and modern features
+2. **Deno** - Secure by default with TypeScript support
+3. **Node.js** - Fallback for maximum compatibility
+
+This "Bun-first" approach ensures the best possible developer experience while maintaining compatibility with all major JavaScript runtimes.
+
+### Executable Entry Point
+
+The CLI is available as `test-anywhere` command when installed globally or via `npx`:
+
+```bash
+# Global installation
+npm install -g test-anywhere
+test-anywhere --help
+
+# Using npx (no installation required)
+npx test-anywhere --help
+
+# Using bunx
+bunx test-anywhere --help
+
+# Using Deno
+deno run npm:test-anywhere --help
+```
+
+## CLI Options Splitting
 
 ### Problem
 
@@ -160,8 +201,54 @@ Support three assertion styles to maximize compatibility:
 - Provide working examples for each runtime in the `examples/` directory
 - Document coverage configuration and threshold enforcement
 
+## Testing Requirements
+
+### Test Location
+
+All tests must be placed in the `./tests` folder at the repository root.
+
+### Self-Testing
+
+The test-anywhere package uses itself as the testing framework (dogfooding). Tests are written using the test-anywhere API:
+
+```javascript
+import { test, describe, assert } from '../src/index.js';
+
+describe('feature', () => {
+  test('should work correctly', () => {
+    assert.ok(true);
+  });
+});
+```
+
+### CI Testing
+
+Tests run automatically in CI on:
+
+- Every commit to pull requests
+- Every commit to the main branch (before release)
+
+The CI runs tests across all supported runtimes:
+
+- **Node.js** on Ubuntu, macOS, Windows
+- **Bun** on Ubuntu, macOS, Windows
+- **Deno** on Ubuntu, macOS, Windows
+
+### CLI Test Coverage
+
+The CLI must have tests covering:
+
+- `--version` / `-v` option
+- `--help` / `-h` option
+- `--verbose` option
+- Double-dash (`--`) separator syntax
+- Command keyword separator syntax
+- Error handling for mixing both separators
+- Runtime detection and priority
+
 ## References
 
 - [Issue #144: CLI Options Splitting](https://github.com/link-foundation/test-anywhere/issues/144)
 - [POSIX Utility Conventions](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html)
 - [npm run-script documentation](https://docs.npmjs.com/cli/v10/commands/npm-run-script/)
+- [js-ai-driven-development-pipeline-template](https://github.com/link-foundation/js-ai-driven-development-pipeline-template)

@@ -11,6 +11,9 @@
       "import": "./src/index.js"
     }
   },
+  "bin": {
+    "test-anywhere": "./bin/test-anywhere.js"
+  },
   "scripts": {
     "test": "node --test tests/",
     "test:node": "node --test tests/",
