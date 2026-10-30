@@ -6,303 +6,33 @@
  * seamlessly across all three runtimes.
  */
 
-// Detect the current runtime
-const runtime = (() => {
-  if (typeof Bun !== 'undefined') {
-    return 'bun';
-  }
-  if (typeof Deno !== 'undefined') {
-    return 'deno';
-  }
-  return 'node';
-})();
+import {
+  test,
+  it,
+  describe,
+  beforeAll,
+  beforeEach,
+  afterEach,
+  afterAll,
+  before,
+  after,
+  getRuntime,
+  setDefaultTimeout,
+} from './runner.js';
 
-// Import the appropriate test function and hooks based on runtime
-let nativeTest;
-let nativeDescribe;
-let nativeBeforeEach;
-let nativeAfterEach;
-let nativeBeforeAll;
-let nativeAfterAll;
-let nativeSetDefaultTimeout;
-let bunTest; // Store bunTest module for later use
-let nodeTest; // Store nodeTest module for later use
-
-if (runtime === 'bun') {
-  // Bun test is imported from bun:test
-  bunTest = await import('bun:test');
-  nativeTest = bunTest.test;
-  nativeDescribe = bunTest.describe;
-  nativeBeforeEach = bunTest.beforeEach;
-  nativeAfterEach = bunTest.afterEach;
-  nativeBeforeAll = bunTest.beforeAll;
-  nativeAfterAll = bunTest.afterAll;
-  nativeSetDefaultTimeout = bunTest.setDefaultTimeout;
-} else if (runtime === 'deno') {
-  // Deno has Deno.test global but no built-in hooks
-  // We'll implement hooks manually for Deno
-  nativeTest = Deno.test;
-  nativeDescribe = null; // Will import from @std/testing/bdd when needed
-  nativeBeforeEach = null;
-  nativeAfterEach = null;
-  nativeBeforeAll = null;
-  nativeAfterAll = null;
-} else {
-  // Node.js test from node:test
-  nodeTest = await import('node:test');
-  nativeTest = nodeTest.test;
-  nativeDescribe = nodeTest.describe;
-  nativeBeforeEach = nodeTest.beforeEach;
-  nativeAfterEach = nodeTest.afterEach;
-  // Node uses 'before' and 'after' instead of 'beforeAll' and 'afterAll'
-  nativeBeforeAll = nodeTest.before;
-  nativeAfterAll = nodeTest.after;
-}
-
-// Hook storage for manual implementation (used by Deno and as a unified interface)
-const hooks = {
-  beforeAll: [],
-  beforeEach: [],
-  afterEach: [],
-  afterAll: [],
+export {
+  test,
+  it,
+  describe,
+  beforeAll,
+  beforeEach,
+  afterEach,
+  afterAll,
+  before,
+  after,
+  getRuntime,
+  setDefaultTimeout,
 };
-
-let beforeAllRun = false;
-let testCount = 0;
-let completedTestCount = 0;
-
-/**
- * Register a function to run once before all tests
- * @param {Function} fn - Function to run before all tests
- */
-export function beforeAll(fn) {
-  if (runtime === 'deno') {
-    // For Deno, store the hook to run manually
-    hooks.beforeAll.push(fn);
-  } else {
-    // For Node and Bun, use native implementation
-    nativeBeforeAll(fn);
-  }
-}
-
-/**
- * Register a function to run before each test
- * @param {Function} fn - Function to run before each test
- */
-export function beforeEach(fn) {
-  if (runtime === 'deno') {
-    // For Deno, store the hook to run manually
-    hooks.beforeEach.push(fn);
-  } else {
-    // For Node and Bun, use native implementation
-    nativeBeforeEach(fn);
-  }
-}
-
-/**
- * Register a function to run after each test
- * @param {Function} fn - Function to run after each test
- */
-export function afterEach(fn) {
-  if (runtime === 'deno') {
-    // For Deno, store the hook to run manually
-    hooks.afterEach.push(fn);
-  } else {
-    // For Node and Bun, use native implementation
-    nativeAfterEach(fn);
-  }
-}
-
-/**
- * Register a function to run once after all tests
- * @param {Function} fn - Function to run after all tests
- */
-export function afterAll(fn) {
-  if (runtime === 'deno') {
-    // For Deno, store the hook to run manually
-    hooks.afterAll.push(fn);
-  } else {
-    // For Node and Bun, use native implementation
-    nativeAfterAll(fn);
-  }
-}
-
-/**
- * Universal test function that works across Bun, Deno, and Node.js
- * @param {string} name - Test name
- * @param {Function} fn - Test function
- */
-export function test(name, fn) {
-  if (runtime === 'deno') {
-    // For Deno, wrap the test function to run hooks manually
-    testCount++;
-    return nativeTest(name, async () => {
-      // Run beforeAll hooks once
-      if (!beforeAllRun && hooks.beforeAll.length > 0) {
-        beforeAllRun = true;
-        for (const hook of hooks.beforeAll) {
-          await hook();
-        }
-      }
-
-      // Run beforeEach hooks
-      for (const hook of hooks.beforeEach) {
-        await hook();
-      }
-
-      // Run the actual test
-      try {
-        await fn();
-      } finally {
-        // Run afterEach hooks
-        for (const hook of hooks.afterEach) {
-          await hook();
-        }
-
-        // Track completed tests and run afterAll when all tests are done
-        completedTestCount++;
-        if (completedTestCount === testCount && hooks.afterAll.length > 0) {
-          for (const hook of hooks.afterAll) {
-            await hook();
-          }
-        }
-      }
-    });
-  } else {
-    // For Node and Bun, just use the native test function
-    // (hooks are handled by the runtime)
-    return nativeTest(name, fn);
-  }
-}
-
-/**
- * Alias for test() - Mocha/Jest style
- * @param {string} name - Test name
- * @param {Function} fn - Test function
- */
-export function it(name, fn) {
-  return test(name, fn);
-}
-
-/**
- * Universal describe function for grouping tests (BDD style)
- * Works across Bun, Deno, and Node.js
- * @param {string} name - Suite name
- * @param {Function} fn - Suite function containing tests
- */
-export function describe(name, fn) {
-  if (runtime === 'bun') {
-    return nativeDescribe(name, fn);
-  } else if (runtime === 'deno') {
-    // For Deno, use @std/testing/bdd module
-    // Note: This requires Deno to have @std/testing/bdd available
-    // We'll call the function directly since Deno doesn't require imports
-    // Users should import from @std/testing/bdd in their test files
-    // For now, we'll just execute the function (no native describe in core Deno.test)
-    // The hooks will work within the function scope
-    return fn();
-  } else {
-    return nativeDescribe(name, fn);
-  }
-}
-
-// Test modifiers
-test.skip = function (name, fn) {
-  if (runtime === 'bun') {
-    return bunTest.test.skip(name, fn);
-  } else if (runtime === 'deno') {
-    return Deno.test({ name, ignore: true, fn: fn || (() => {}) });
-  } else {
-    return nodeTest.test(name, { skip: true }, fn || (() => {}));
-  }
-};
-
-test.only = function (name, fn) {
-  if (runtime === 'bun') {
-    return bunTest.test.only(name, fn);
-  } else if (runtime === 'deno') {
-    return Deno.test({ name, only: true, fn });
-  } else {
-    return nodeTest.test(name, { only: true }, fn);
-  }
-};
-
-test.todo = function (name, fn) {
-  if (runtime === 'bun') {
-    return bunTest.test.todo(name);
-  } else if (runtime === 'deno') {
-    // Deno doesn't have native todo, simulate with skip and [TODO] prefix
-    return Deno.test({
-      name: `[TODO] ${name}`,
-      ignore: true,
-      fn: fn || (() => {}),
-    });
-  } else {
-    return nodeTest.test(name, { todo: true }, fn);
-  }
-};
-
-// it() modifiers (same as test modifiers)
-it.skip = test.skip;
-it.only = test.only;
-it.todo = test.todo;
-
-// describe() modifiers
-describe.skip = function (name, fn) {
-  if (runtime === 'bun') {
-    return bunTest.describe.skip(name, fn);
-  } else if (runtime === 'deno') {
-    // For Deno, just don't execute the function (skip the entire suite)
-    return;
-  } else {
-    return nodeTest.describe(name, { skip: true }, fn);
-  }
-};
-
-describe.only = function (name, fn) {
-  if (runtime === 'bun') {
-    return bunTest.describe.only(name, fn);
-  } else if (runtime === 'deno') {
-    // For Deno, just execute normally (Deno doesn't have describe.only)
-    return describe(name, fn);
-  } else {
-    return nodeTest.describe(name, { only: true }, fn);
-  }
-};
-
-// Mocha-style hook aliases
-export const before = beforeAll;
-export const after = afterAll;
-
-/**
- * Get the current runtime name
- * @returns {string} The runtime name ('bun', 'deno', or 'node')
- */
-export function getRuntime() {
-  return runtime;
-}
-
-/**
- * Set the default timeout for tests
- * @param {number} timeout - Timeout in milliseconds
- */
-export function setDefaultTimeout(timeout) {
-  if (runtime === 'bun') {
-    // For Bun, use the native setDefaultTimeout
-    if (nativeSetDefaultTimeout) {
-      nativeSetDefaultTimeout(timeout);
-    }
-  } else if (runtime === 'node') {
-    // For Node.js, this is not supported natively
-    // Tests can use { timeout } option in individual test() calls
-    console.warn(
-      'setDefaultTimeout is not supported in Node.js runtime. Use { timeout } option in test() calls instead.'
-    );
-  } else if (runtime === 'deno') {
-    // For Deno, this is not supported natively
-    console.warn('setDefaultTimeout is not supported in Deno runtime.');
-  }
-}
 
 /**
  * Helper function for deep equality comparison
@@ -877,6 +607,7 @@ export default {
   assertThrows,
   assertRejects,
   getRuntime,
+  setDefaultTimeout,
   beforeAll,
   beforeEach,
   afterEach,

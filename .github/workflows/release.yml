@@ -93,6 +93,7 @@ jobs:
   # Test matrix: 3 runtimes (Node.js, Bun, Deno) x 3 OS (Ubuntu, macOS, Windows)
   test:
     name: Test (${{ matrix.runtime }} on ${{ matrix.os }})
+    timeout-minutes: 15
     runs-on: ${{ matrix.os }}
     needs: [changeset-check]
     if: always() && (github.event_name == 'push' || needs.changeset-check.result == 'success')
@@ -137,6 +138,20 @@ jobs:
       - name: Run tests (Deno)
         if: matrix.runtime == 'deno'
         run: deno test --allow-read
+
+      - name: Verify native reporter and failure contracts
+        run: node experiments/issue-150/verify-runtime.mjs ${{ matrix.runtime }}
+
+      - name: Check public TypeScript declarations
+        if: matrix.runtime == 'deno'
+        run: deno check --no-config experiments/issue-150/types.ts
+
+      - name: Preserve contract fixture logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-logs-${{ matrix.runtime }}-${{ matrix.os }}
+          path: ci-logs/contract-*.log
 
   # Coverage check - runs on ubuntu only for all runtimes
   coverage:
