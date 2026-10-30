@@ -83,23 +83,73 @@ export interface Assert {
   ): void;
 }
 
-/**
- * Test function interface with modifiers
- */
-export interface TestFunction {
-  (name: string, fn: () => void | Promise<void>): void;
-  skip(name: string, fn?: () => void | Promise<void>): void;
-  only(name: string, fn: () => void | Promise<void>): void;
-  todo(name: string, fn?: () => void | Promise<void>): void;
+/** Native Node/Deno 2.9+ context. Bun/older Deno reject context parameters. */
+export interface TestContext {
+  readonly name: string;
+  readonly signal: AbortSignal;
+  test: TestRegistration;
+  skip(message?: string): void;
+  todo(message?: string): void;
+}
+
+export type TestCallback = (context: TestContext) => void | Promise<void>;
+export type TestResult = void | Promise<void>;
+
+export interface TestOptions {
+  /** Milliseconds; 0 disables the per-test deadline. */
+  timeout?: number;
+  skip?: boolean | string;
+  /** Native TODO behavior: Node can run a supplied body; Bun/Deno ignore it. */
+  todo?: boolean | string;
+  only?: boolean;
+  /** Native Node/Deno 2.9+ cancellation; unsupported on Bun/older Deno. */
+  signal?: AbortSignal;
+}
+
+export interface PendingTestFunction {
+  (name: string, fn?: TestCallback): TestResult;
+  (name: string, options: TestOptions, fn?: TestCallback): TestResult;
+}
+
+/** Native registration signatures, also used by context.test(). */
+export interface TestRegistration {
+  (name: string, fn: TestCallback): TestResult;
+  (name: string, options: TestOptions, fn: TestCallback): TestResult;
+  (
+    name: string,
+    options: TestOptions & ({ skip: true | string } | { todo: true | string })
+  ): TestResult;
+}
+
+/** Validated options precede the callback for every test alias/modifier. */
+export interface TestFunction extends TestRegistration {
+  skip: PendingTestFunction;
+  only: {
+    (name: string, fn: TestCallback): TestResult;
+    (name: string, options: TestOptions, fn: TestCallback): TestResult;
+  };
+  todo: PendingTestFunction;
 }
 
 /**
  * Describe function interface with modifiers
  */
+export interface SuiteOptions {
+  skip?: boolean | string;
+  only?: boolean;
+}
+
 export interface DescribeFunction {
-  (name: string, fn: () => void): void;
-  skip(name: string, fn: () => void): void;
-  only(name: string, fn: () => void): void;
+  (name: string, fn: () => void): TestResult;
+  (name: string, options: SuiteOptions, fn: () => void): TestResult;
+  skip: {
+    (name: string, fn?: () => void): TestResult;
+    (name: string, options: SuiteOptions, fn?: () => void): TestResult;
+  };
+  only: {
+    (name: string, fn: () => void): TestResult;
+    (name: string, options: SuiteOptions, fn: () => void): TestResult;
+  };
 }
 
 /**
@@ -165,6 +215,9 @@ export const after: typeof afterAll;
  * @returns The runtime name ('bun', 'deno', or 'node')
  */
 export function getRuntime(): 'bun' | 'deno' | 'node';
+
+/** Bun's native default setter; warns on Node/Deno. Prefer per-test options. */
+export function setDefaultTimeout(timeout: number): void;
 
 /**
  * Universal assertion helper
@@ -316,6 +369,7 @@ declare const _default: {
   assertThrows: typeof assertThrows;
   assertRejects: typeof assertRejects;
   getRuntime: typeof getRuntime;
+  setDefaultTimeout: typeof setDefaultTimeout;
   beforeAll: typeof beforeAll;
   beforeEach: typeof beforeEach;
   afterEach: typeof afterEach;

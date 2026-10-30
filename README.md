@@ -172,7 +172,58 @@ it('should do something', () => {
 });
 ```
 
-#### `describe(name, fn)`
+#### `test(name, options, fn)` / `it(name, options, fn)`
+
+The two-argument form remains supported. Options always come **before** the
+callback, including with `.skip`, `.only` and `.todo`. Invalid arguments,
+unknown options and unsupported runtime features throw during registration;
+a supplied callback is never silently discarded by an argument mismatch.
+
+```javascript
+test('finishes within a second', { timeout: 1000 }, async () => {
+  await someOperation();
+});
+it('requires a service', { skip: 'service is offline' }, () => {
+  // Intentionally not executed
+});
+it.skip('requires credentials', { skip: 'credentials unavailable' }, () => {});
+```
+
+| Option                    | Node.js                              | Bun                         | Deno 2.9+                               |
+| ------------------------- | ------------------------------------ | --------------------------- | --------------------------------------- |
+| `timeout: number`         | Native deadline                      | Native deadline             | Native deadline through `node:test`     |
+| `skip: boolean \| string` | Native skip and reason               | Native skip; reason in name | Native ignored test; reason in name     |
+| `todo: boolean \| string` | Native TODO; a supplied body can run | Native pending test         | Ignored pending test                    |
+| `only: boolean`           | Native focus; use `--test-only`      | Native focus                | Focus through `node:test`               |
+| `signal: AbortSignal`     | Native cancellation                  | Explicit error              | Native cancellation through `node:test` |
+
+Timeouts must be finite numbers between `0` and `2147483647` milliseconds;
+`0` disables the per-test deadline. The native runner determines timeout and
+TODO reporting. Node can count a deadline as cancelled rather than failed,
+but the run exits unsuccessfully either way. `.skip` and `.todo` can omit a
+body; other tests require one unless the options explicitly mark them pending.
+
+On Node and Deno 2.9+, callbacks receive the native `node:test` context, including
+`name`, `signal` and subtest methods. Bun has no compatible context and treats
+a callback parameter as `done`, so this API explicitly rejects test callbacks
+that declare parameters on Bun. Use zero-argument async callbacks for portable
+tests. Runtime-specific context helpers remain native.
+
+Deno releases before 2.9 retain a `Deno.test` fallback with scoped hooks,
+options callbacks, skip/todo reasons and visible skipped suites. Those releases
+explicitly reject nonzero deadlines, signals, context callbacks and async suite
+callbacks because their native APIs cannot provide the shared contract. Native
+`only` on these releases runs focused tests but makes Deno exit unsuccessfully.
+Use Deno 2.9 or newer for the complete Node-compatible options and context API.
+
+Deadlines use native runner cancellation. JavaScript deadlines cannot safely
+stop arbitrary asynchronous work: pass `context.signal` to abort-aware work on
+Node/Deno and release timers, connections and other resources in `afterEach`
+or `afterAll` on every runtime. No wrapper `Promise.race` reports a timed-out
+body as successful. Normal test registration uses no logging; subscribe to the
+`test-anywhere:register` Node diagnostics channel to trace runtime mappings.
+
+#### `describe(name, fn)` / `describe(name, options, fn)`
 
 Groups related tests together (BDD style).
 
@@ -229,6 +280,22 @@ test.todo('implement this feature');
 
 Skip or isolate an entire test suite.
 
+Suite options support `skip` (a boolean or reason string) and `only` (boolean).
+The same options-before-callback overload works with both suite modifiers:
+
+```javascript
+describe.skip('integration tests', { skip: 'database is offline' }, () => {
+  it('connects to the database', () => {});
+});
+```
+
+Node reports the native reason; Bun and Deno append `[skipped: reason]` to
+the suite name. Deno registers one ignored suite, including for empty and nested
+skipped suites. Bun retains child-level skipped reporting and registers a
+skipped entry for an empty suite. Skipped test bodies never execute.
+Deno uses its built-in `node:test` compatibility layer for scoped suites and
+lifecycle hooks; no remote BDD dependency is needed.
+
 ```javascript
 describe.skip('integration tests', () => {
   // All tests in this suite will be skipped
@@ -243,7 +310,8 @@ describe.only('unit tests', () => {
 
 #### `setDefaultTimeout(timeout)`
 
-Set the default timeout for all tests in milliseconds. This is useful when tests need more time to complete (e.g., integration tests, API calls).
+Set Bun's native default timeout in milliseconds. Node and Deno emit a warning;
+use per-test options on those runtimes.
 
 **Parameters:**
 
@@ -266,7 +334,9 @@ test('long running operation', async () => {
 **Note:**
 
 - For **Bun**: Uses the native `setDefaultTimeout` from `bun:test`
-- For **Node.js** and **Deno**: Not supported natively. A warning will be logged, and you should use timeout options in individual test calls instead.
+- For **Node.js** and **Deno**: A warning recommends the supported overload
+  `test(name, { timeout: 60000 }, callback)`. The default setter does not change
+  deadlines on these runtimes.
 
 ### Assertions
 
@@ -537,7 +607,8 @@ Check out the [examples](./examples) directory for complete working examples:
 `test-anywhere` automatically detects the JavaScript runtime (Bun, Deno, or Node.js) and delegates to the appropriate native testing framework:
 
 - **Bun** → Uses `bun:test`
-- **Deno** → Uses `Deno.test`
+- **Deno 2.9+** → Uses Deno's built-in `node:test` compatibility layer
+- **Older Deno** → Uses `Deno.test` with scoped lifecycle hooks
 - **Node.js** → Uses `node:test`
 
 This means you get the full performance and features of each runtime's native testing implementation while maintaining a consistent API across all platforms.
@@ -736,7 +807,7 @@ For more details on coverage options, see the [Native Test Frameworks Comparison
 ## Requirements
 
 - **Node.js**: 20.0.0 or higher (for native test runner support)
-- **Deno**: 1.x or higher (native Deno.test support)
+- **Deno**: 1.x or higher; Deno 2.9+ for native deadlines, signals and Node-compatible context
 - **Bun**: Any recent version (native bun:test support)
 
 ## License

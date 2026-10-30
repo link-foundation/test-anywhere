@@ -17,6 +17,7 @@ import {
   before,
   after,
   assert,
+  getRuntime,
 } from '../src/index.js';
 
 // Test basic Node.js test functionality through our wrapper
@@ -163,7 +164,7 @@ test('Node: assert.throwsAsync works', async () => {
 });
 
 // Test runtime detection
-test('Node: runtime detection', () => {
+test('Node: runtime detection', { skip: getRuntime() !== 'node' }, () => {
   // We should be running on Node.js
   const isNode =
     typeof process !== 'undefined' && process.versions && process.versions.node;
@@ -171,9 +172,13 @@ test('Node: runtime detection', () => {
 });
 
 // Test that Node-specific features are available
-test('Node: node:test module is available', () => {
-  assert.ok(typeof process !== 'undefined', 'process global exists');
-});
+test(
+  'Node: node:test module is available',
+  { skip: getRuntime() !== 'node' },
+  () => {
+    assert.ok(typeof process !== 'undefined', 'process global exists');
+  }
+);
 
 // Nested describes
 describe('Node: nested describes', () => {
