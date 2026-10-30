@@ -14,6 +14,8 @@ it('options', options, async () => {});
 test('context', {}, async (context: TestContext) => {
   await context.test('child', () => {});
   context.signal.throwIfAborted();
+  // @ts-expect-error Native context.test has no modifier properties.
+  context.test.skip('invalid native modifier');
 });
 test.skip('skip reason', { skip: 'offline' }, () => {});
 it.todo('pending reason', { todo: 'not implemented' });

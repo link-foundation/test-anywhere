@@ -87,7 +87,7 @@ export interface Assert {
 export interface TestContext {
   readonly name: string;
   readonly signal: AbortSignal;
-  test: TestFunction;
+  test: TestRegistration;
   skip(message?: string): void;
   todo(message?: string): void;
 }
@@ -111,14 +111,18 @@ export interface PendingTestFunction {
   (name: string, options: TestOptions, fn?: TestCallback): TestResult;
 }
 
-/** Validated options precede the callback for every test alias/modifier. */
-export interface TestFunction {
+/** Native registration signatures, also used by context.test(). */
+export interface TestRegistration {
   (name: string, fn: TestCallback): TestResult;
   (name: string, options: TestOptions, fn: TestCallback): TestResult;
   (
     name: string,
     options: TestOptions & ({ skip: true | string } | { todo: true | string })
   ): TestResult;
+}
+
+/** Validated options precede the callback for every test alias/modifier. */
+export interface TestFunction extends TestRegistration {
   skip: PendingTestFunction;
   only: {
     (name: string, fn: TestCallback): TestResult;
