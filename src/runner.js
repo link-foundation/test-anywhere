@@ -12,7 +12,7 @@ const runtime =
 const native = await import(runtime === 'bun' ? 'bun:test' : 'node:test');
 const registrations = channel('test-anywhere:register');
 const noop = () => {};
-let testRegistrations = 0;
+let childRegistrations = 0;
 
 function normalize(kind, args, modifier) {
   const [name, second, third] = args;
@@ -121,9 +121,7 @@ function register(kind, args, modifier) {
     registrations.publish({ runtime, kind, name, options });
   }
   const registerNative = kind === 'describe' ? native.describe : native.test;
-  if (kind === 'test') {
-    testRegistrations++;
-  }
+  childRegistrations++;
   if (runtime !== 'bun') {
     // Node interprets zero as an immediate deadline; the shared API uses zero
     // to disable it, matching Bun and Deno's native convention.
@@ -138,9 +136,9 @@ function register(kind, args, modifier) {
     // Add a sentinel only when an empty suite would otherwise disappear.
     if (kind === 'describe') {
       return registerNative.skip(name, () => {
-        const previous = testRegistrations;
+        const previous = childRegistrations;
         (fn || noop)();
-        if (testRegistrations === previous) {
+        if (childRegistrations === previous) {
           native.test.skip(name, noop);
         }
       });

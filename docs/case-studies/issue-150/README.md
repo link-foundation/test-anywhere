@@ -10,7 +10,7 @@
 - [x] Implement the contract for every public test alias and modifier, suites, hooks and declarations.
 - [x] Update documentation and add a release changeset.
 - [x] Run lint, formatting, size checks, all runtime tests, contract subprocess tests and coverage sequentially.
-- [ ] Review the complete PR diff, commit atomic changes and push only the prepared branch.
+- [x] Review the complete PR diff, commit atomic changes and push only the prepared branch.
 - [ ] Update PR 151, check fresh CI against the final SHA and mark it ready once verified.
 
 ## Requirement inventory and solution decisions
@@ -42,6 +42,8 @@ The downstream issues linked by 149 explain the consumer impact; 149 does not re
 `test` and `it` took only two parameters, so Node interpreted the options object as a valid native registration and never saw the supplied callback. Deno attempted to call that object. Modifiers had their own separate registration paths, bypassing Deno's hooks. Deno `describe.skip` returned without registering anything. Its manual hooks were global, unscoped and counted tests that might not run.
 
 The initial PR workflow (run 41059716415, SHA 6dcd22a) failed at line 344 of `ci-logs/checks-and-release-41059716415.log`: no changeset was present. A changeset is the repository's release trigger, so no manual version bump is needed.
+
+The first implementation workflow (run 41061385165, SHA f053fc6) exposed Bun's native CI focus guard: `ci-logs/bun-windows-41061385165.log:545` and `ci-logs/bun-macos-41061385165.log:542` report that `.only` is disabled when `CI=true`. Running the local harness with `CI=true` reproduced the failure. The intentional focus subprocess now sets `CI=false` for that fixture alone; the full suite and other fixtures retain the safeguard.
 
 ## Online research and reusable components
 

@@ -69,6 +69,7 @@ describe.skip('empty visible suite',()=>{});`,
       /suite reason/,
       /visible suite/,
       /empty visible suite/,
+      ...(runtime === 'bun' ? [/\b4 skip\b/] : []),
     ],
     pass: 1,
     skip: 2,
@@ -214,7 +215,14 @@ try {
       encoding: 'utf8',
       timeout: 15000,
       maxBuffer: 2 * 1024 * 1024,
-      env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
+      env: {
+        ...process.env,
+        NO_COLOR: '1',
+        FORCE_COLOR: '0',
+        // Bun blocks .only in CI. This isolated fixture deliberately tests it;
+        // keep the safeguard enabled for the full suite and other fixtures.
+        ...(runtime === 'bun' && fixture.only ? { CI: 'false' } : {}),
+      },
     });
     const output = stripVTControlCharacters(result.stdout + result.stderr);
     writeFileSync(
