@@ -6,9 +6,20 @@ import { join } from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 import assert from 'node:assert/strict';
 import { stripVTControlCharacters } from 'node:util';
+import { isLegacyDeno } from '../../src/deno-legacy.js';
 
 const runtime = process.argv[2] || 'node';
 assert.ok(['node', 'bun', 'deno'].includes(runtime));
+const denoVersion =
+  runtime === 'deno'
+    ? spawnSync('deno', ['--version'], { encoding: 'utf8', timeout: 15000 })
+    : null;
+if (denoVersion) {
+  assert.equal(denoVersion.status, 0, denoVersion.stderr);
+}
+const legacyDeno =
+  denoVersion && isLegacyDeno(denoVersion.stdout.match(/deno (\S+)/)[1]);
+const supportsContext = runtime !== 'bun' && !legacyDeno;
 const moduleUrl =
   process.argv[3] || new URL('../../src/index.js', import.meta.url).href;
 const logDir = fileURLToPath(new URL('../../ci-logs/', import.meta.url));
@@ -114,17 +125,16 @@ finally {console.log('BODY_ABORTED');}
   },
   {
     name: 'context',
-    code:
-      runtime === 'bun'
-        ? `test('explicit unsupported context',()=>{
+    code: !supportsContext
+      ? `test('explicit unsupported context',()=>{
 assert.throws(()=>test('context',(t)=>t));
 assert.throws(()=>test('signal',{signal:AbortSignal.abort()},()=>{}));
 console.log('UNSUPPORTED_EXPLICIT');});`
-        : `test('native context',{timeout:1000},async(t)=>{
+      : `test('native context',{timeout:1000},async(t)=>{
 assert.equal(t.name,'native context'); assert.ok(t.signal instanceof AbortSignal);
 await t.test('native subtest',()=>console.log('CONTEXT_BODY'));
 });`,
-    checks: [runtime === 'bun' ? /UNSUPPORTED_EXPLICIT/ : /CONTEXT_BODY/],
+    checks: [supportsContext ? /CONTEXT_BODY/ : /UNSUPPORTED_EXPLICIT/],
   },
   {
     name: 'focus',
@@ -152,21 +162,39 @@ console.log('TODO_MODIFIER_BODY'); throw Error('EXPECTED_TODO');
   },
   {
     name: 'signal',
-    fails: runtime !== 'bun',
-    code:
-      runtime === 'bun'
-        ? `test('signal is rejected',()=>assert.throws(()=>
+    fails: supportsContext,
+    code: !supportsContext
+      ? `test('signal is rejected',()=>assert.throws(()=>
 test('unsupported',{signal:AbortSignal.abort()},()=>{})));`
-        : `const controller=new AbortController();
+      : `const controller=new AbortController();
 test('cancelled',{signal:controller.signal},async(t)=>{
 console.log('SIGNAL_BODY');
 const timer=setTimeout(()=>controller.abort(),30);
 try {await delay(1000,null,{signal:t.signal});}
 finally {clearTimeout(timer);console.log('SIGNAL_CLEANUP');}
 });`,
-    checks: runtime === 'bun' ? [] : [/SIGNAL_BODY/, /SIGNAL_CLEANUP/],
+    checks: supportsContext ? [/SIGNAL_BODY/, /SIGNAL_CLEANUP/] : [],
   },
 ];
+
+if (legacyDeno) {
+  for (const fixture of cases) {
+    fixture.code = fixture.code.replaceAll('{timeout:1000}', '{}');
+    if (fixture.name === 'timeout') {
+      fixture.fails = false;
+      fixture.fail = undefined;
+      fixture.pass = 1;
+      fixture.code = `test('explicit unsupported deadline',()=>{
+assert.throws(()=>test('deadline',{timeout:50},()=>{}));
+console.log('UNSUPPORTED_DEADLINE');});`;
+      fixture.checks = [/UNSUPPORTED_DEADLINE/];
+    }
+    if (fixture.name === 'focus') {
+      // Deno.test deliberately exits unsuccessfully when native only is used.
+      fixture.fails = true;
+    }
+  }
+}
 
 function checkCount(output, kind, minimum) {
   if (minimum === undefined) {

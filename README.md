@@ -189,7 +189,7 @@ it('requires a service', { skip: 'service is offline' }, () => {
 it.skip('requires credentials', { skip: 'credentials unavailable' }, () => {});
 ```
 
-| Option                    | Node.js                              | Bun                         | Deno                                    |
+| Option                    | Node.js                              | Bun                         | Deno 2.9+                               |
 | ------------------------- | ------------------------------------ | --------------------------- | --------------------------------------- |
 | `timeout: number`         | Native deadline                      | Native deadline             | Native deadline through `node:test`     |
 | `skip: boolean \| string` | Native skip and reason               | Native skip; reason in name | Native ignored test; reason in name     |
@@ -203,11 +203,18 @@ TODO reporting. Node can count a deadline as cancelled rather than failed,
 but the run exits unsuccessfully either way. `.skip` and `.todo` can omit a
 body; other tests require one unless the options explicitly mark them pending.
 
-On Node and Deno, callbacks receive the native `node:test` context, including
+On Node and Deno 2.9+, callbacks receive the native `node:test` context, including
 `name`, `signal` and subtest methods. Bun has no compatible context and treats
 a callback parameter as `done`, so this API explicitly rejects test callbacks
 that declare parameters on Bun. Use zero-argument async callbacks for portable
 tests. Runtime-specific context helpers remain native.
+
+Deno releases before 2.9 retain a `Deno.test` fallback with scoped hooks,
+options callbacks, skip/todo reasons and visible skipped suites. Those releases
+explicitly reject nonzero deadlines, signals, context callbacks and async suite
+callbacks because their native APIs cannot provide the shared contract. Native
+`only` on these releases runs focused tests but makes Deno exit unsuccessfully.
+Use Deno 2.9 or newer for the complete Node-compatible options and context API.
 
 Deadlines use native runner cancellation. JavaScript deadlines cannot safely
 stop arbitrary asynchronous work: pass `context.signal` to abort-aware work on
@@ -600,7 +607,8 @@ Check out the [examples](./examples) directory for complete working examples:
 `test-anywhere` automatically detects the JavaScript runtime (Bun, Deno, or Node.js) and delegates to the appropriate native testing framework:
 
 - **Bun** → Uses `bun:test`
-- **Deno** → Uses `Deno.test`
+- **Deno 2.9+** → Uses Deno's built-in `node:test` compatibility layer
+- **Older Deno** → Uses `Deno.test` with scoped lifecycle hooks
 - **Node.js** → Uses `node:test`
 
 This means you get the full performance and features of each runtime's native testing implementation while maintaining a consistent API across all platforms.
@@ -799,7 +807,7 @@ For more details on coverage options, see the [Native Test Frameworks Comparison
 ## Requirements
 
 - **Node.js**: 20.0.0 or higher (for native test runner support)
-- **Deno**: 1.x or higher (native Deno.test support)
+- **Deno**: 1.x or higher; Deno 2.9+ for native deadlines, signals and Node-compatible context
 - **Bun**: Any recent version (native bun:test support)
 
 ## License

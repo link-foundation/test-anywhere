@@ -1,4 +1,4 @@
-import { channel } from 'node:diagnostics_channel';
+import { createLegacyDenoRunner, isLegacyDeno } from './deno-legacy.js';
 
 const runtime =
   typeof Bun !== 'undefined'
@@ -9,8 +9,15 @@ const runtime =
 
 // Deno's built-in Node compatibility layer supplies scoped suites, hooks,
 // cancellation and ignored suite registrations without an external dependency.
-const native = await import(runtime === 'bun' ? 'bun:test' : 'node:test');
-const registrations = channel('test-anywhere:register');
+const legacyDeno = runtime === 'deno' && isLegacyDeno(Deno.version.deno);
+const native = legacyDeno
+  ? createLegacyDenoRunner(Deno)
+  : await import(runtime === 'bun' ? 'bun:test' : 'node:test');
+const registrations = legacyDeno
+  ? { hasSubscribers: false }
+  : (await import('node:diagnostics_channel')).channel(
+      'test-anywhere:register'
+    );
 const noop = () => {};
 let childRegistrations = 0;
 
@@ -80,9 +87,12 @@ function normalize(kind, args, modifier) {
     if (!(options.signal instanceof globalThis.AbortSignal)) {
       throw new TypeError('signal must be an AbortSignal');
     }
-    if (runtime === 'bun') {
-      throw new TypeError('signal is not supported by bun:test');
+    if (runtime === 'bun' || legacyDeno) {
+      throw new TypeError(`signal is not supported by ${runtime} native tests`);
     }
+  }
+  if (legacyDeno && options.timeout !== undefined && options.timeout !== 0) {
+    throw new TypeError('Native test timeouts require Deno 2.9 or newer');
   }
   if (modifier) {
     // Keep a reason supplied through .skip/.todo rather than replacing it.
@@ -97,10 +107,17 @@ function normalize(kind, args, modifier) {
   }
   // Bun interprets a parameter as a done callback, not a TestContext. Reject
   // that shape explicitly rather than silently changing the callback contract.
-  if (runtime === 'bun' && kind === 'test' && fn?.length > 0) {
+  if ((runtime === 'bun' || legacyDeno) && kind === 'test' && fn?.length > 0) {
     throw new TypeError(
-      'TestContext callbacks are not supported by bun:test; use a zero-argument callback'
+      `TestContext callbacks are not supported by ${runtime} native tests; use a zero-argument callback`
     );
+  }
+  if (
+    legacyDeno &&
+    kind === 'describe' &&
+    fn?.constructor.name === 'AsyncFunction'
+  ) {
+    throw new TypeError('Async suite callbacks require Deno 2.9 or newer');
   }
   return { name, options, fn };
 }
@@ -193,7 +210,7 @@ export function setDefaultTimeout(timeout) {
     native.setDefaultTimeout(timeout === 0 ? Infinity : timeout);
   } else {
     console.warn(
-      `setDefaultTimeout is not supported in ${runtime} runtime. Use test(name, { timeout }, callback) instead.`
+      `setDefaultTimeout is not supported in ${runtime} runtime. Use test(name, { timeout }, callback)${legacyDeno ? ' after upgrading to Deno 2.9 or newer' : ' instead'}.`
     );
   }
 }

@@ -8,6 +8,10 @@ import {
   assert,
   getRuntime,
 } from '../src/index.js';
+import { isLegacyDeno } from '../src/deno-legacy.js';
+
+const legacyDeno = getRuntime() === 'deno' && isLegacyDeno(Deno.version.deno);
+const deadline = legacyDeno ? {} : { timeout: 1000 };
 
 describe('validated test options', () => {
   let calls = 0;
@@ -17,8 +21,8 @@ describe('validated test options', () => {
   afterEach(() => cleanups++);
 
   test('two argument control', () => calls++);
-  test('options callback executes', { timeout: 1000 }, () => calls++);
-  it('it options callback executes', { timeout: 1000 }, async () => {
+  test('options callback executes', deadline, () => calls++);
+  it('it options callback executes', deadline, async () => {
     await Promise.resolve();
     calls++;
   });
@@ -74,7 +78,7 @@ test('invalid registrations throw before reaching the native runner', () => {
   for (const register of invalid) {
     assert.throws(register);
   }
-  if (getRuntime() === 'bun') {
+  if (getRuntime() === 'bun' || legacyDeno) {
     assert.throws(() =>
       test(
         'unsupported signal',
@@ -83,6 +87,12 @@ test('invalid registrations throw before reaching the native runner', () => {
       )
     );
     assert.throws(() => test('unsupported context', (context) => context));
+  }
+  if (legacyDeno) {
+    assert.throws(() =>
+      test('unsupported deadline', { timeout: 50 }, () => {})
+    );
+    assert.throws(() => describe('unsupported async suite', async () => {}));
   }
 });
 

@@ -83,7 +83,7 @@ export interface Assert {
   ): void;
 }
 
-/** Native Node/Deno context. Bun rejects callbacks declaring a parameter. */
+/** Native Node/Deno 2.9+ context. Bun/older Deno reject context parameters. */
 export interface TestContext {
   readonly name: string;
   readonly signal: AbortSignal;
@@ -102,7 +102,7 @@ export interface TestOptions {
   /** Native TODO behavior: Node can run a supplied body; Bun/Deno ignore it. */
   todo?: boolean | string;
   only?: boolean;
-  /** Native Node/Deno cancellation. Explicitly unsupported on Bun. */
+  /** Native Node/Deno 2.9+ cancellation; unsupported on Bun/older Deno. */
   signal?: AbortSignal;
 }
 
