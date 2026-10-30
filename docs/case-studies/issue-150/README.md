@@ -12,7 +12,7 @@
 - [x] Run lint, formatting, size checks, all runtime tests, contract subprocess tests and coverage sequentially.
 - [x] Audit the advertised older Deno support, reproduce its compatibility failure, preserve it and add an automated CI target.
 - [x] Review the complete PR diff, commit atomic changes and push only the prepared branch.
-- [ ] Update PR 151, check fresh CI against the final SHA and mark it ready once verified.
+- [x] Update PR 151, verify fresh CI against the implementation SHA and mark it ready. The PR metadata records the latest check results, including subsequent documentation-only commits.
 
 ## Requirement inventory and solution decisions
 
@@ -71,3 +71,7 @@ The original-signature skipped-suite fixture was also run against the original `
 The source passes the complete existing suites (Node: 195 passing tests; Bun: 220; Deno 2.9.7: 116 top-level tests and 133 steps) plus `tests/options.test.js`, which covers invalid shapes and values, hook scope, both aliases and options callbacks. `deno check --no-config experiments/issue-150/types.ts` checks the public declaration overloads, including expected type errors. Local lint, formatting and file-size checks pass. Local coverage reports exceed the repository thresholds: Node 90.09% lines / 85.71% branches / 89.61% functions, Bun 90.89% lines / 92.09% functions, and Deno 89.1% lines / 88.5% branches. The existing Deno coverage script does not parse the current Markdown reporter table; these Deno values are read directly from that table.
 
 Runtime limitations are intentional and explicit: Bun rejects a `signal` option and callbacks declaring a context parameter because its native runner has a different callback contract. Node/Deno 2.9+ forward their native context and cancellation. Older Deno explicitly rejects nonzero deadlines, signals, context callbacks and async suite callbacks; its native focus guard causes an unsuccessful exit even though focused bodies run. All ten contract probes also pass on Deno 1.46.3, with explicit-error assertions for unsupported features. The full legacy suite passes 195 tests with no failures. Mocked tests verify scoped setup, cleanup after body/setup/cleanup failures, ignored registrations and focus counts. Native TODO execution and focus/reporting differences are documented. No external runner or timeout-race dependency is added, and resources in timeout fixtures are aborted or cleared before the subprocess exits.
+
+## Hosted verification
+
+[Run 41063674984](https://github.com/link-foundation/test-anywhere/actions/runs/41063674984) passed against implementation commit `b8c6ded38f5ca5e38bd15d43600c39e8d6f9f2e0`: all nine current runtime/OS combinations, the Deno 1.46.3 suite and contract probes, lint/formatting, changeset validation, public declaration checks and all three coverage jobs. PR 151 was marked ready after those results were verified. No acceptance criterion is deferred.
